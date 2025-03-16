@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import type { CookieOptions } from '@supabase/ssr';
 
 export function createClient(cookieStore: {
-  get: (name: string) => { value: string } | undefined;
+  get: (name: string) => { value: string } | undefined | Promise<{ value: string } | undefined>;
   set: (params: { name: string; value: string; options?: CookieOptions }) => void;
 }) {
   return createServerClient(
@@ -10,8 +10,9 @@ export function createClient(cookieStore: {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        async get(name: string) {
+          const cookie = await cookieStore.get(name);
+          return cookie?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
           cookieStore.set({ name, value, options });

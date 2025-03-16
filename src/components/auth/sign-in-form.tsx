@@ -8,7 +8,6 @@ import * as z from "zod";
 import { signInWithEmail } from "@/lib/services/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -17,6 +16,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const signInSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -27,6 +28,7 @@ type SignInValues = z.infer<typeof signInSchema>;
 export function SignInForm() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isEmailSent, setIsEmailSent] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -37,17 +39,21 @@ export function SignInForm() {
 
   async function onSubmit(data: SignInValues) {
     setIsLoading(true);
+    setError(null);
 
     try {
-      await signInWithEmail({
+      const result = await signInWithEmail({
         email: data.email,
       });
+      
+      console.log("Magic link sign-in result:", result);
       setIsEmailSent(true);
-    } catch (error) {
-      console.error("Error signing in:", error);
+    } catch (err: any) {
+      console.error("Error signing in:", err);
+      setError(err.message || "There was an error sending the magic link. Please try again.");
       form.setError("email", {
         type: "manual",
-        message: "There was an error sending the magic link. Please try again.",
+        message: err.message || "There was an error sending the magic link. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -66,6 +72,16 @@ export function SignInForm() {
       ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <FormField
               control={form.control}
               name="email"
@@ -91,6 +107,12 @@ export function SignInForm() {
               {isLoading ? "Sending magic link..." : "Sign In with Email"}
             </Button>
           </form>
+          
+          <div className="text-center text-sm">
+            <p className="text-muted-foreground">
+              No password required! We&apos;ll send you a magic link.
+            </p>
+          </div>
         </Form>
       )}
     </div>

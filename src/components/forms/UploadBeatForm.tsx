@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { uploadBeatFile, getBeatFileUrl, createBeatWaveform } from "@/lib/supabase";
+import { uploadBeatFile, getBeatFileUrl, createBeatWaveform } from "@/lib/supabase/index";
 
 const formSchema = z.object({
   title: z.string().min(2, {

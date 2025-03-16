@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase';
-import { getCurrentUser as getUser } from '@/lib/supabase/server-actions';
+import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 
 export interface SignInCredentials {
   email: string;
@@ -19,6 +19,7 @@ export async function signInWithEmail(credentials: SignInCredentials) {
   });
 
   if (error) {
+    console.error("Auth error:", error);
     throw new Error(error.message);
   }
 
@@ -26,7 +27,7 @@ export async function signInWithEmail(credentials: SignInCredentials) {
 }
 
 export async function signUpWithEmail(credentials: SignUpCredentials) {
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signInWithOtp({
     email: credentials.email,
     options: {
       emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
@@ -37,6 +38,7 @@ export async function signUpWithEmail(credentials: SignUpCredentials) {
   });
 
   if (error) {
+    console.error("Sign up error:", error);
     throw new Error(error.message);
   }
 
@@ -54,4 +56,4 @@ export async function signOut() {
 }
 
 // Re-export the getCurrentUser function from server-actions
-export const getCurrentUser = getUser; 
+export { getCurrentUser } from '@/lib/supabase/server-actions'; 
