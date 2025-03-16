@@ -1,16 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+// Re-export client-side Supabase client
+export * from './client';
 
-// DEPRECATED: Use the new client from src/lib/supabase/client.ts or src/lib/supabase/server.ts instead
-console.warn('This Supabase client is deprecated. Use the new client from src/lib/supabase/client.ts or src/lib/supabase/server.ts instead');
-
-// Create a single Supabase client for interacting with your database
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
-
-// DEPRECATED: Use the functions from src/lib/supabase/index.ts instead
+// Export utility functions that use Supabase
 export async function uploadBeatFile(file: File, path: string) {
+  const { supabase } = await import('./client');
   const { data, error } = await supabase.storage
     .from('beats')
     .upload(path, file, {
@@ -33,11 +26,13 @@ export async function createBeatWaveform(audioUrl: string, beatId: string) {
 }
 
 export async function getBeatFileUrl(path: string) {
+  const { supabase } = await import('./client');
   const { data } = supabase.storage.from('beats').getPublicUrl(path);
   return data.publicUrl;
 }
 
 export async function deleteBeatFile(path: string) {
+  const { supabase } = await import('./client');
   const { error } = await supabase.storage.from('beats').remove([path]);
   
   if (error) {

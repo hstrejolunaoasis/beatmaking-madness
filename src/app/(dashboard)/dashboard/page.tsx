@@ -1,122 +1,53 @@
-"use client";
+import { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { useState } from "react";
-import UploadBeatForm from "@/components/forms/UploadBeatForm";
-import { Button } from "@/components/ui/button";
-import { useApi } from "@/lib/hooks/useApi";
-import { Beat } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { getCurrentUser } from "@/lib/services/auth";
 
-function BeatDashboardSkeleton() {
-  return (
-    <div className="space-y-4">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="p-4 border rounded-md">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <Skeleton className="w-40 h-6" />
-              <Skeleton className="w-24 h-4" />
-            </div>
-            <Skeleton className="w-20 h-8" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+export const metadata: Metadata = {
+  title: "Dashboard | BeatMaking Madness",
+  description: "Manage your beats and account",
+};
 
-export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<"upload" | "manage">("manage");
-  const { data: beats, loading, error, refetch } = useApi<Beat[]>({
-    url: "/api/beats",
-  });
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+
+  // This is a fallback - middleware should handle this but just in case
+  if (!user) {
+    redirect("/sign-in");
+  }
 
   return (
     <div className="container py-8">
-      <h1 className="mb-8 text-3xl font-bold">Producer Dashboard</h1>
+      <h1 className="text-4xl font-bold mb-6">Dashboard</h1>
       
-      <div className="flex space-x-4 mb-6">
-        <Button
-          variant={activeTab === "manage" ? "default" : "outline"}
-          onClick={() => setActiveTab("manage")}
-        >
-          Manage Beats
-        </Button>
-        <Button
-          variant={activeTab === "upload" ? "default" : "outline"}
-          onClick={() => setActiveTab("upload")}
-        >
-          Upload New Beat
-        </Button>
-      </div>
-      
-      {activeTab === "upload" ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload a New Beat</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <UploadBeatForm />
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Your Beats</h2>
-            <Button variant="outline" onClick={() => refetch()}>
-              Refresh
-            </Button>
-          </div>
-          
-          {error && (
-            <div className="p-4 text-white bg-red-500 rounded-md">
-              Error loading beats: {error.message}
-            </div>
-          )}
-          
-          {loading ? (
-            <BeatDashboardSkeleton />
-          ) : (
-            <div className="space-y-4">
-              {beats && beats.length > 0 ? (
-                beats.map((beat) => (
-                  <div key={beat.id} className="p-4 border rounded-md">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-medium">{beat.title}</h3>
-                        <p className="text-muted-foreground">
-                          ${beat.price.toFixed(2)} • {beat.bpm} BPM • {beat.key}
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(`/beats/${beat.id}`, "_blank")}
-                      >
-                        View
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-12 text-center">
-                  <h3 className="text-xl">You haven't uploaded any beats yet</h3>
-                  <p className="text-muted-foreground">
-                    Click "Upload New Beat" to get started
-                  </p>
-                  <Button 
-                    className="mt-4"
-                    onClick={() => setActiveTab("upload")}
-                  >
-                    Upload New Beat
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+      <div className="grid gap-6">
+        <div className="bg-card rounded-lg p-6 shadow-sm">
+          <h2 className="text-2xl font-semibold mb-4">Welcome back{user?.user_metadata?.name ? `, ${user.user_metadata.name}` : ''}!</h2>
+          <p className="text-muted-foreground">
+            This is your beatmaker dashboard where you can manage your beats, see your stats, and more.
+          </p>
         </div>
-      )}
+        
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-card rounded-lg p-6 shadow-sm">
+            <h3 className="text-xl font-semibold mb-2">Your Beats</h3>
+            <p className="text-muted-foreground mb-4">Manage and upload your beats</p>
+            <p className="text-2xl font-bold">0</p>
+          </div>
+
+          <div className="bg-card rounded-lg p-6 shadow-sm">
+            <h3 className="text-xl font-semibold mb-2">Downloads</h3>
+            <p className="text-muted-foreground mb-4">Total beat downloads</p>
+            <p className="text-2xl font-bold">0</p>
+          </div>
+
+          <div className="bg-card rounded-lg p-6 shadow-sm">
+            <h3 className="text-xl font-semibold mb-2">Sales</h3>
+            <p className="text-muted-foreground mb-4">Your total sales</p>
+            <p className="text-2xl font-bold">$0</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 
