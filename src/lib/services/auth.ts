@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { createClient as createServerClient } from '@/lib/supabase/server';
+import { getCurrentUser as getUser } from '@/lib/supabase/server-actions';
 
 export interface SignInCredentials {
   email: string;
@@ -53,12 +53,5 @@ export async function signOut() {
   return true;
 }
 
-export async function getCurrentUser() {
-  const supabase = createServerClient();
-
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null;
-
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-} 
+// Re-export the getCurrentUser function from server-actions
+export const getCurrentUser = getUser; 

@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { getCurrentUser } from "@/lib/services/auth";
+import { getCurrentUser } from "@/lib/supabase/server-actions";
 
 export const metadata: Metadata = {
   title: "Dashboard | BeatMaking Madness",

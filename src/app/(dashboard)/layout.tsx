@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { getCurrentUser } from "@/lib/services/auth";
+import { getCurrentUser } from "@/lib/supabase/server-actions";
 import { UserNav } from "@/components/auth/user-nav";
 
 export default async function DashboardLayout({
