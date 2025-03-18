@@ -13,20 +13,21 @@ Beatmaking Madness is a professional e-commerce platform for music producers to 
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15, React, TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui
-- **Database**: PostgreSQL with Prisma ORM
+- **Frontend**: Next.js 15.2, React 19, TypeScript 5
+- **Styling**: Tailwind CSS 4, shadcn/ui
+- **Database**: PostgreSQL with Prisma 6 ORM
 - **Storage**: Supabase Storage
-- **Authentication**: NextAuth.js
-- **Payments**: Stripe
-- **State Management**: Zustand
-- **Form Handling**: React Hook Form, Zod
+- **Authentication**: @auth/nextjs
+- **Payments**: Stripe 17
+- **State Management**: Zustand 5
+- **Form Handling**: React Hook Form 7, Zod 3
+- **Data Fetching**: TanStack React Query 5
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18.0.0 or later
+- Node.js 20.0.0 or later
 - npm or yarn
 - A Supabase account
 - A Stripe account
@@ -117,6 +118,7 @@ beatmaking-madness/
 - **Components**: Use shadcn/ui for UI components
 - **Database**: Use Prisma for database access
 - **API Routes**: Create API routes in `app/api`
+- **Development**: Uses Turbopack for improved dev performance
 
 ## Deployment
 
@@ -134,8 +136,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgements
 
 - [Next.js](https://nextjs.org/)
+- [React](https://react.dev/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [Prisma](https://www.prisma.io/)
 - [Supabase](https://supabase.io/)
 - [Stripe](https://stripe.com/)
+- [TanStack React Query](https://tanstack.com/query/latest)
+- [Zustand](https://github.com/pmndrs/zustand)

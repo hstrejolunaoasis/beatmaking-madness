@@ -166,6 +166,8 @@ export default async function DashboardPage() {
         <nav className="flex items-center gap-4 mt-4 sm:mt-0">
           <Link href="/dashboard" className="text-sm font-medium hover:text-primary">Dashboard</Link>
           <Link href="/dashboard/beats" className="text-sm font-medium hover:text-primary">My Beats</Link>
+          <Link href="/dashboard/licenses" className="text-sm font-medium hover:text-primary">Licenses</Link>
+          <Link href="/dashboard/license-types" className="text-sm font-medium hover:text-primary">License Types</Link>
           <Link href="/dashboard/upload" className="text-sm font-medium hover:text-primary">Upload</Link>
           <Link href="/dashboard/sales" className="text-sm font-medium hover:text-primary">Sales</Link>
         </nav>
@@ -265,9 +267,12 @@ export default async function DashboardPage() {
           <CardContent>
             <LicenseSummary />
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-2">
             <Button variant="ghost" size="sm" className="w-full" asChild>
               <a href="/dashboard/licenses">Manage Licenses</a>
+            </Button>
+            <Button variant="ghost" size="sm" className="w-full" asChild>
+              <a href="/dashboard/license-types">Manage License Types</a>
             </Button>
           </CardFooter>
         </Card>

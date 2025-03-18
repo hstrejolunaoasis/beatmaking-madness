@@ -1,30 +1,30 @@
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
 import type { Beat, User, Order, CartItem } from "@/types";
 import { OrderStatus } from "@prisma/client";
 
 export const dbService = {
   // Beat operations
   async getBeats() {
-    return prisma.beat.findMany({
+    return db.beat.findMany({
       orderBy: { createdAt: "desc" },
     });
   },
 
   async getBeat(id: string) {
-    return prisma.beat.findUnique({
+    return db.beat.findUnique({
       where: { id },
     });
   },
 
   async createBeat(data: Omit<Beat, "id" | "createdAt" | "updatedAt">) {
-    return prisma.beat.create({
+    return db.beat.create({
       data,
     });
   },
 
   // User operations
   async getUser(id: string) {
-    return prisma.user.findUnique({
+    return db.user.findUnique({
       where: { id },
       include: {
         orders: true,
@@ -33,14 +33,14 @@ export const dbService = {
   },
 
   async getUserByEmail(email: string) {
-    return prisma.user.findUnique({
+    return db.user.findUnique({
       where: { email },
     });
   },
 
   // Order operations
   async createOrder(userId: string, items: CartItem[], total: number) {
-    return prisma.order.create({
+    return db.order.create({
       data: {
         userId,
         total,
@@ -59,14 +59,14 @@ export const dbService = {
   },
 
   async updateOrderStatus(orderId: string, status: OrderStatus) {
-    return prisma.order.update({
+    return db.order.update({
       where: { id: orderId },
       data: { status },
     });
   },
 
   async getUserOrders(userId: string) {
-    return prisma.order.findMany({
+    return db.order.findMany({
       where: { userId },
       include: {
         items: {
