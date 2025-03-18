@@ -48,14 +48,29 @@ model Order {
   items     OrderItem[]
 }
 
+model License {
+  id           String   @id @default(cuid())
+  name         String
+  type         LicenseType
+  description  String
+  price        Float
+  features     String[]
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orderItems   OrderItem[]
+}
+
 model OrderItem {
   id          String      @id @default(cuid())
   orderId     String
   beatId      String
+  licenseId   String
   licenseType LicenseType
   price       Float
   beat        Beat        @relation(fields: [beatId], references: [id])
   order       Order       @relation(fields: [orderId], references: [id])
+  license     License     @relation(fields: [licenseId], references: [id])
 }
 
 enum Role {
