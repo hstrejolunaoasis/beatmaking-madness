@@ -1,9 +1,8 @@
-import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { DataTable } from "@/components/ui/data-table";
 import { columns } from "./columns";
 import { db } from "@/lib/db";
-import { LicenseDialog } from "./license-dialog";
+import { LicenseHeader } from "./components/license-header";
 
 export const metadata = {
   title: "License Management",
@@ -20,13 +19,10 @@ export default async function LicensesPage() {
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between">
-          <Heading
-            title="License Management"
-            description="Manage your license types and details"
-          />
-          <LicenseDialog />
-        </div>
+        <LicenseHeader 
+          title="License Management"
+          description="Manage your license types and details"
+        />
         <Separator />
         <DataTable columns={columns} data={licenses} />
       </div>
