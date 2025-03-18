@@ -21,6 +21,9 @@ export async function GET(
       where: {
         id: params.licenseId,
       },
+      include: {
+        licenseType: true,
+      },
     });
     
     if (!license) {
@@ -51,7 +54,20 @@ export async function PATCH(
     
     const body = await req.json();
     
-    const { name, type, description, price, features, active } = body;
+    const { name, licenseTypeId, description, price, features, active } = body;
+    
+    if (licenseTypeId) {
+      // Verify license type exists
+      const licenseType = await db.licenseType.findUnique({
+        where: {
+          id: licenseTypeId,
+        },
+      });
+      
+      if (!licenseType) {
+        return new NextResponse("License type not found", { status: 400 });
+      }
+    }
     
     const license = await db.license.update({
       where: {
@@ -59,11 +75,14 @@ export async function PATCH(
       },
       data: {
         name,
-        type,
+        licenseTypeId,
         description,
         price,
         features,
         active,
+      },
+      include: {
+        licenseType: true,
       },
     });
     

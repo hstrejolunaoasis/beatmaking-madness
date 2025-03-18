@@ -4,15 +4,12 @@ import { getCurrentUser } from "@/lib/supabase/server-actions";
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
-    
-    if (!user) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-    
     const licenses = await db.license.findMany({
       orderBy: {
         createdAt: "desc",
+      },
+      include: {
+        licenseType: true,
       },
     });
     
@@ -33,20 +30,34 @@ export async function POST(req: NextRequest) {
     
     const body = await req.json();
     
-    const { name, type, description, price, features, active } = body;
+    const { name, licenseTypeId, description, price, features, active } = body;
     
-    if (!name || !type || !description || price === undefined || !features) {
+    if (!name || !licenseTypeId || !description || price === undefined || !features) {
       return new NextResponse("Missing required fields", { status: 400 });
+    }
+    
+    // Verify license type exists
+    const licenseType = await db.licenseType.findUnique({
+      where: {
+        id: licenseTypeId,
+      },
+    });
+    
+    if (!licenseType) {
+      return new NextResponse("License type not found", { status: 400 });
     }
     
     const license = await db.license.create({
       data: {
         name,
-        type,
+        licenseTypeId,
         description,
         price,
         features,
         active: active ?? true,
+      },
+      include: {
+        licenseType: true,
       },
     });
     

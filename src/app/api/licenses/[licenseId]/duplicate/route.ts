@@ -22,6 +22,9 @@ export async function POST(
       where: {
         id: params.licenseId,
       },
+      include: {
+        licenseType: true,
+      },
     });
     
     if (!originalLicense) {
@@ -32,11 +35,14 @@ export async function POST(
     const newLicense = await db.license.create({
       data: {
         name: `${originalLicense.name} (Copy)`,
-        type: originalLicense.type,
+        licenseTypeId: originalLicense.licenseTypeId,
         description: originalLicense.description,
         price: originalLicense.price,
         features: originalLicense.features,
         active: originalLicense.active,
+      },
+      include: {
+        licenseType: true,
       },
     });
     

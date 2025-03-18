@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,13 +24,13 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { createLicense, updateLicense, License as LicenseType } from "@/lib/api-client";
+import { createLicense, updateLicense, License as LicenseType, getLicenseTypes, LicenseType as LicenseTypeModel } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  type: z.enum(["basic", "premium", "exclusive"]),
+  licenseTypeId: z.string().min(1, "License type is required"),
   description: z.string().min(1, "Description is required"),
   price: z.coerce.number().min(0, "Price must be at least 0"),
   features: z.string().min(1, "Features are required"),
@@ -51,11 +51,34 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
   onLoadingChange
 }) => {
   const [loading, setLoading] = useState(false);
+  const [licenseTypes, setLicenseTypes] = useState<LicenseTypeModel[]>([]);
+  const [loadingLicenseTypes, setLoadingLicenseTypes] = useState(false);
   const router = useRouter();
 
   const title = initialData ? "Edit License" : "Create License";
   const description = initialData ? "Edit a license" : "Add a new license";
   const action = initialData ? "Save changes" : "Create";
+
+  useEffect(() => {
+    const fetchLicenseTypes = async () => {
+      try {
+        setLoadingLicenseTypes(true);
+        const data = await getLicenseTypes();
+        setLicenseTypes(data);
+      } catch (error) {
+        console.error("Failed to fetch license types:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load license types. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingLicenseTypes(false);
+      }
+    };
+
+    fetchLicenseTypes();
+  }, []);
 
   const defaultValues = initialData
     ? {
@@ -64,7 +87,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       }
     : {
         name: "",
-        type: "basic" as const,
+        licenseTypeId: "",
         description: "",
         price: 0,
         features: "",
@@ -154,12 +177,12 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
             />
             <FormField
               control={form.control}
-              name="type"
+              name="licenseTypeId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type</FormLabel>
+                  <FormLabel>License Type</FormLabel>
                   <Select
-                    disabled={loading}
+                    disabled={loading || loadingLicenseTypes}
                     onValueChange={field.onChange}
                     value={field.value}
                     defaultValue={field.value}
@@ -170,9 +193,22 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="basic">Basic</SelectItem>
-                      <SelectItem value="premium">Premium</SelectItem>
-                      <SelectItem value="exclusive">Exclusive</SelectItem>
+                      {loadingLicenseTypes ? (
+                        <div className="flex items-center justify-center p-2">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          <span>Loading types...</span>
+                        </div>
+                      ) : licenseTypes.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          No license types found
+                        </div>
+                      ) : (
+                        licenseTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -254,7 +290,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
           <Button 
             type="submit" 
             className="mt-4" 
-            disabled={loading}
+            disabled={loading || loadingLicenseTypes}
           >
             {loading ? (
               <>
