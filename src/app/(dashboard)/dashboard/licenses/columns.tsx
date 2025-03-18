@@ -184,8 +184,8 @@ export const columns: ColumnDef<License>[] = [
                   initialData={license} 
                   title="Edit License"
                   trigger={
-                    <button className="w-full text-left cursor-pointer flex items-center px-2 py-1.5">
-                      <Edit className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <button className="w-full text-left cursor-pointer flex items-center px-2 py-1.5 hover:bg-muted focus:bg-muted transition-colors">
+                      <Edit className="h-4 w-4 mr-2 text-primary" />
                       <span>Edit license</span>
                     </button>
                   }
@@ -203,12 +203,10 @@ export const columns: ColumnDef<License>[] = [
               <DropdownMenuItem 
                 onClick={() => setShowDeleteAlert(true)}
                 disabled={loading}
-                className="text-destructive focus:text-destructive px-2 py-1.5 focus:bg-destructive/10"
+                className="flex items-center px-2 py-1.5 cursor-pointer focus:bg-destructive/10 hover:bg-destructive/10 text-destructive hover:text-destructive"
               >
-                <div className="flex items-center">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  <span>Delete license</span>
-                </div>
+                <Trash2 className="h-4 w-4 mr-2" />
+                <span>Delete license</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -230,7 +228,7 @@ export const columns: ColumnDef<License>[] = [
                     e.preventDefault();
                     handleDelete();
                   }}
-                  className="bg-destructive hover:bg-destructive/90 focus:ring-destructive"
+                  className="bg-destructive hover:bg-destructive/90 text-white"
                 >
                   {loading ? "Deleting..." : "Delete"}
                 </AlertDialogAction>
