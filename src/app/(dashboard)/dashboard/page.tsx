@@ -1,12 +1,13 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { BarChart, LineChart, Activity, Download, DollarSign, Music, Calendar, TrendingUp, Users } from "lucide-react";
+import { BarChart, LineChart, Activity, Download, DollarSign, Music, Calendar, TrendingUp, Users, FileText, Shield, Award } from "lucide-react";
 import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/supabase/server-actions";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BEAT_LICENSES } from "@/lib/config/constants";
 
 // Create reusable component for stat cards
 function StatCard({ 
@@ -83,6 +84,55 @@ function RecentActivity() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Create component for license summary
+function LicenseSummary() {
+  // In a real app, you would fetch this data from the database
+  // For now, we'll use placeholder data
+  const licenses = [
+    { type: "basic", count: 2, lastPurchased: "2023-07-10" },
+    { type: "premium", count: 1, lastPurchased: "2023-07-15" },
+    { type: "exclusive", count: 0, lastPurchased: null },
+  ];
+
+  if (licenses.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-muted-foreground">No licenses purchased yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {licenses.map((license) => {
+        const licenseDetails = BEAT_LICENSES[license.type as keyof typeof BEAT_LICENSES];
+        return (
+          <div key={license.type} className="flex items-start space-x-3">
+            <div className="p-2 bg-primary/10 rounded-full">
+              {license.type === "basic" && <FileText className="h-4 w-4 text-primary" />}
+              {license.type === "premium" && <Award className="h-4 w-4 text-primary" />}
+              {license.type === "exclusive" && <Shield className="h-4 w-4 text-primary" />}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">{licenseDetails.name}</p>
+                <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded-full">
+                  {license.count} {license.count === 1 ? 'license' : 'licenses'}
+                </span>
+              </div>
+              {license.lastPurchased ? (
+                <p className="text-xs text-muted-foreground">Last purchased: {license.lastPurchased}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Not purchased yet</p>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -201,8 +251,28 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Upcoming Section */}
+      {/* License Management and Upcoming Section */}
       <div className="grid gap-4 md:grid-cols-2">
+        {/* License Management Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl">License Management</CardTitle>
+              <Shield className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <CardDescription>Summary of your licensed beats</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LicenseSummary />
+          </CardContent>
+          <CardFooter>
+            <Button variant="ghost" size="sm" className="w-full" asChild>
+              <a href="/dashboard/licenses">Manage Licenses</a>
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Upcoming Section */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -217,7 +287,10 @@ export default async function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Trending Genres Section - moved to its own row */}
+      <div className="grid gap-4">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
