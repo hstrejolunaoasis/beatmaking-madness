@@ -1,6 +1,6 @@
 'use client'
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Copy, Edit, Trash2, Check, X } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Copy, Edit, Trash2, Check, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -117,16 +117,28 @@ export const columns: ColumnDef<License>[] = [
       const license = row.original;
       const router = useRouter();
       const [loading, setLoading] = useState(false);
+      const [actionType, setActionType] = useState<'delete' | 'duplicate' | null>(null);
       const [showDeleteAlert, setShowDeleteAlert] = useState(false);
       
       const handleDelete = async () => {
         try {
           setLoading(true);
+          setActionType('delete');
+          
+          // Show loading toast
+          toast({
+            title: "Deleting license...",
+            description: "Please wait while we process your request.",
+          });
+          
           await deleteLicense(license.id);
+          
+          // Update toast to success
           toast({
             title: "Success",
             description: "License deleted successfully.",
           });
+          
           router.refresh();
         } catch (error) {
           toast({
@@ -136,6 +148,7 @@ export const columns: ColumnDef<License>[] = [
           });
         } finally {
           setLoading(false);
+          setActionType(null);
           setShowDeleteAlert(false);
         }
       };
@@ -143,11 +156,22 @@ export const columns: ColumnDef<License>[] = [
       const handleDuplicate = async () => {
         try {
           setLoading(true);
+          setActionType('duplicate');
+          
+          // Show loading toast
+          toast({
+            title: "Duplicating license...",
+            description: "Please wait while we process your request.",
+          });
+          
           await duplicateLicense(license.id);
+          
+          // Update toast to success
           toast({
             title: "Success",
             description: "License duplicated successfully.",
           });
+          
           router.refresh();
         } catch (error) {
           toast({
@@ -157,6 +181,7 @@ export const columns: ColumnDef<License>[] = [
           });
         } finally {
           setLoading(false);
+          setActionType(null);
         }
       };
 
@@ -169,8 +194,12 @@ export const columns: ColumnDef<License>[] = [
                 className="h-8 w-8 p-0 hover:bg-muted focus-visible:ring-1 focus-visible:ring-primary" 
                 disabled={loading}
               >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MoreHorizontal className="h-4 w-4" />
+                )}
                 <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -184,7 +213,10 @@ export const columns: ColumnDef<License>[] = [
                   initialData={license} 
                   title="Edit License"
                   trigger={
-                    <button className="w-full text-left cursor-pointer flex items-center px-2 py-1.5 hover:bg-muted focus:bg-muted transition-colors">
+                    <button 
+                      className="w-full text-left cursor-pointer flex items-center px-2 py-1.5 hover:bg-muted focus:bg-muted transition-colors"
+                      disabled={loading}
+                    >
                       <Edit className="h-4 w-4 mr-2 text-primary" />
                       <span>Edit license</span>
                     </button>
@@ -196,8 +228,12 @@ export const columns: ColumnDef<License>[] = [
                 disabled={loading}
                 className="flex items-center cursor-pointer px-2 py-1.5"
               >
-                <Copy className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>Duplicate license</span>
+                {loading && actionType === 'duplicate' ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Copy className="h-4 w-4 mr-2 text-muted-foreground" />
+                )}
+                <span>{loading && actionType === 'duplicate' ? 'Duplicating...' : 'Duplicate license'}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
@@ -205,14 +241,27 @@ export const columns: ColumnDef<License>[] = [
                 disabled={loading}
                 className="flex items-center px-2 py-1.5 cursor-pointer focus:bg-destructive/10 hover:bg-destructive/10 text-destructive hover:text-destructive"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                <span>Delete license</span>
+                {loading && actionType === 'delete' ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                <span>{loading && actionType === 'delete' ? 'Deleting...' : 'Delete license'}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           
           <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
             <AlertDialogContent>
+              {loading && actionType === 'delete' && (
+                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
+                  <div className="flex flex-col items-center gap-2 text-center p-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-destructive" />
+                    <p className="text-sm font-medium">Deleting license...</p>
+                    <p className="text-xs text-muted-foreground">This may take a moment</p>
+                  </div>
+                </div>
+              )}
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
@@ -230,7 +279,14 @@ export const columns: ColumnDef<License>[] = [
                   }}
                   className="bg-destructive hover:bg-destructive/90 text-white"
                 >
-                  {loading ? "Deleting..." : "Delete"}
+                  {loading && actionType === 'delete' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

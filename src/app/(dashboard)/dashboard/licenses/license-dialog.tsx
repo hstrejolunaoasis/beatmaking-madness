@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { PlusIcon } from "lucide-react";
+import { Loader2, PlusIcon } from "lucide-react";
 import { LicenseForm } from "@/components/forms/license-form";
 import { License } from "@/lib/api-client";
 
@@ -25,6 +25,7 @@ export const LicenseDialog = ({
   title = "Add New License",
 }: LicenseDialogProps) => {
   const [open, setOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const defaultTrigger = (
     <Button size="sm">
@@ -33,16 +34,38 @@ export const LicenseDialog = ({
     </Button>
   );
 
+  const handleFormProcessing = (processing: boolean) => {
+    setIsProcessing(processing);
+  };
+
   const handleSuccess = () => {
     setOpen(false);
+    setIsProcessing(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      // Prevent closing dialog while processing
+      if (isProcessing && !isOpen) return;
+      setOpen(isOpen);
+    }}>
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        {isProcessing && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
+            <div className="flex flex-col items-center gap-2 text-center p-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm font-medium">
+                {initialData ? "Updating license..." : "Creating license..."}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                This may take a moment
+              </p>
+            </div>
+          </div>
+        )}
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
@@ -55,6 +78,7 @@ export const LicenseDialog = ({
           <LicenseForm 
             initialData={initialData}
             onSuccess={handleSuccess}
+            onLoadingChange={handleFormProcessing}
           />
         </div>
       </DialogContent>

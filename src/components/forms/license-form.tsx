@@ -26,6 +26,7 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { createLicense, updateLicense, License as LicenseType } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -41,11 +42,13 @@ type LicenseFormValues = z.infer<typeof formSchema>;
 interface LicenseFormProps {
   initialData?: LicenseType | null;
   onSuccess?: () => void;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 export const LicenseForm: React.FC<LicenseFormProps> = ({ 
   initialData,
-  onSuccess 
+  onSuccess,
+  onLoadingChange
 }) => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -76,6 +79,13 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
   const onSubmit = async (data: LicenseFormValues) => {
     try {
       setLoading(true);
+      if (onLoadingChange) onLoadingChange(true);
+      
+      // Show processing toast
+      const loadingToast = toast({
+        title: initialData ? "Updating license..." : "Creating license...",
+        description: "Please wait while we process your request.",
+      });
       
       // Transform features from string to array
       const transformedData = {
@@ -90,6 +100,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
         await createLicense(transformedData);
       }
       
+      // Show success toast
       toast({
         title: "Success",
         description: `License ${initialData ? "updated" : "created"} successfully.`,
@@ -111,21 +122,19 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       });
     } finally {
       setLoading(false);
+      if (onLoadingChange) onLoadingChange(false);
     }
   };
 
   return (
-    <>
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      <div>
         <Heading title={title} description={description} />
+        <Separator className="my-4" />
       </div>
-      <Separator />
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-8 w-full"
-        >
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="name"
@@ -157,7 +166,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue defaultValue={field.value} />
+                        <SelectValue placeholder="Select a license type" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -233,19 +242,31 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
                 <FormControl>
                   <Textarea
                     disabled={loading}
-                    placeholder="License features"
+                    placeholder="- Feature 1&#10;- Feature 2&#10;- Feature 3"
                     {...field}
+                    className="min-h-[120px]"
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button disabled={loading} type="submit">
-            {action}
+          <Button 
+            type="submit" 
+            className="mt-4" 
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {initialData ? "Saving..." : "Creating..."}
+              </>
+            ) : (
+              action
+            )}
           </Button>
         </form>
       </Form>
-    </>
+    </div>
   );
 };
