@@ -40,4 +40,9 @@ export const updateLicense = async (id: string, data: UpdateLicenseDTO): Promise
 
 export const deleteLicense = async (id: string): Promise<void> => {
   await axios.delete(`${API_URL}/api/licenses/${id}`);
+};
+
+export const duplicateLicense = async (id: string): Promise<License> => {
+  const response = await axios.post(`${API_URL}/api/licenses/${id}/duplicate`);
+  return response.data;
 }; 

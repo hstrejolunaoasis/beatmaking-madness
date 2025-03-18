@@ -1,6 +1,6 @@
 'use client'
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { License } from "@/lib/api-client";
 import { LicenseDialog } from "./license-dialog";
-import { deleteLicense } from "@/lib/api-client";
+import { deleteLicense, duplicateLicense } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
@@ -127,6 +127,26 @@ export const columns: ColumnDef<License>[] = [
           setLoading(false);
         }
       };
+      
+      const handleDuplicate = async () => {
+        try {
+          setLoading(true);
+          await duplicateLicense(license.id);
+          toast({
+            title: "Success",
+            description: "License duplicated successfully.",
+          });
+          router.refresh();
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to duplicate license.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
 
       return (
         <DropdownMenu>
@@ -144,6 +164,14 @@ export const columns: ColumnDef<License>[] = [
                 title="Edit License"
                 trigger={<button className="w-full text-left cursor-pointer">Edit license</button>}
               />
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={handleDuplicate}
+              disabled={loading}
+              className="flex items-center cursor-pointer"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Duplicate license
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
