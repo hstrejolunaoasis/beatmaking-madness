@@ -1,0 +1,20 @@
+name: Database Migrations
+
+on:
+  push:
+    paths:
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/**'
+
+jobs:
+  validate:
+    name: 🗃️ Validate Migrations
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📊 Check Migration Status
+        run: npx prisma migrate status
+        
+      - name: 🧪 Test Migrations
+        run: |
+          npx prisma migrate reset --force
+          npx prisma migrate deploy 
