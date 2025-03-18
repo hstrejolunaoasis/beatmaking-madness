@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BarChart, LineChart, Activity, Download, DollarSign, Music, Calendar, TrendingUp, Users } from "lucide-react";
+import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/supabase/server-actions";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,9 +111,18 @@ export default async function DashboardPage() {
 
   return (
     <div className="container py-8 space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <nav className="flex items-center gap-4 mt-4 sm:mt-0">
+          <Link href="/dashboard" className="text-sm font-medium hover:text-primary">Dashboard</Link>
+          <Link href="/dashboard/beats" className="text-sm font-medium hover:text-primary">My Beats</Link>
+          <Link href="/dashboard/upload" className="text-sm font-medium hover:text-primary">Upload</Link>
+          <Link href="/dashboard/sales" className="text-sm font-medium hover:text-primary">Sales</Link>
+        </nav>
+      </div>
+      
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
             Welcome back{user?.user_metadata?.name ? `, ${user.user_metadata.name}` : ''}!
           </p>
