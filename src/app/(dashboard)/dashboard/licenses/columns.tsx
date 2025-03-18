@@ -1,6 +1,6 @@
 'use client'
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Copy } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Copy, Edit, Trash2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,16 @@ import { deleteLicense, duplicateLicense } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const columns: ColumnDef<License>[] = [
   {
@@ -107,6 +117,7 @@ export const columns: ColumnDef<License>[] = [
       const license = row.original;
       const router = useRouter();
       const [loading, setLoading] = useState(false);
+      const [showDeleteAlert, setShowDeleteAlert] = useState(false);
       
       const handleDelete = async () => {
         try {
@@ -125,6 +136,7 @@ export const columns: ColumnDef<License>[] = [
           });
         } finally {
           setLoading(false);
+          setShowDeleteAlert(false);
         }
       };
       
@@ -149,40 +161,83 @@ export const columns: ColumnDef<License>[] = [
       };
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0" disabled={loading}>
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem asChild>
-              <LicenseDialog 
-                initialData={license} 
-                title="Edit License"
-                trigger={<button className="w-full text-left cursor-pointer">Edit license</button>}
-              />
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={handleDuplicate}
-              disabled={loading}
-              className="flex items-center cursor-pointer"
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Duplicate license
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={handleDelete}
-              disabled={loading}
-              className="text-destructive focus:text-destructive"
-            >
-              Delete license
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="h-8 w-8 p-0 hover:bg-muted focus-visible:ring-1 focus-visible:ring-primary" 
+                disabled={loading}
+              >
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <p className="text-sm font-medium leading-none mb-1">License Actions</p>
+                <p className="text-xs text-muted-foreground truncate">{license.name}</p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <LicenseDialog 
+                  initialData={license} 
+                  title="Edit License"
+                  trigger={
+                    <button className="w-full text-left cursor-pointer flex items-center px-2 py-1.5">
+                      <Edit className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>Edit license</span>
+                    </button>
+                  }
+                />
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={handleDuplicate}
+                disabled={loading}
+                className="flex items-center cursor-pointer px-2 py-1.5"
+              >
+                <Copy className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span>Duplicate license</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => setShowDeleteAlert(true)}
+                disabled={loading}
+                className="text-destructive focus:text-destructive px-2 py-1.5 focus:bg-destructive/10"
+              >
+                <div className="flex items-center">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  <span>Delete license</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the license <span className="font-medium">{license.name}</span>. 
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={loading}
+                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                    e.preventDefault();
+                    handleDelete();
+                  }}
+                  className="bg-destructive hover:bg-destructive/90 focus:ring-destructive"
+                >
+                  {loading ? "Deleting..." : "Delete"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       );
     },
   },
