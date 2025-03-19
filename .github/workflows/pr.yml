@@ -1,0 +1,52 @@
+name: Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+jobs:
+  pr-validation:
+    name: 🔍 PR Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🎯 Conventional PR
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📏 Size Check
+        uses: andresz1/size-limit-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          build_script: build
+          skip_step: install
+
+      - name: 🔍 Check File Changes
+        run: |
+          changes=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+          echo "Changed files:"
+          echo "$changes"
+          
+          # Check for sensitive files
+          if echo "$changes" | grep -E '\.env|\.key|password|secret'; then
+            echo "⚠️ Warning: Potentially sensitive files modified"
+            exit 1
+          fi
+          
+          # Check for large files
+          while IFS= read -r file; do
+            if [ -f "$file" ]; then
+              size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file")
+              if [ "$size" -gt 5242880 ]; then # 5MB
+                echo "⚠️ Warning: File $file is larger than 5MB"
+                exit 1
+              fi
+            fi
+          done <<< "$changes" 

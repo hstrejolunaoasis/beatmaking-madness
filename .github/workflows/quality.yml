@@ -1,0 +1,84 @@
+name: Quality Check
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'prisma/**'
+      - '**.ts'
+      - '**.tsx'
+      - '**.js'
+      - '**.jsx'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/**'
+  # Run weekly checks only on main branch to save minutes
+  schedule:
+    - cron: '0 0 * * 1' # Weekly on Monday
+
+# Ensure only one quality check runs at a time per PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: 📊 Quality & Tests
+    runs-on: ubuntu-latest
+    # Only run scheduled job if there are changes
+    if: github.event_name != 'schedule' || github.event.repository.pushed_at > github.event.schedule.triggered_at
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1 # Shallow clone for faster checkout
+
+      - name: ⚡ Setup & Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ${{ github.workspace }}/.next/cache
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 💿 Install Dependencies
+        run: npm ci --prefer-offline --no-audit --ignore-scripts
+
+      # Combined job to save minutes (jobs are rounded up to the nearest minute)
+      - name: 🔍 Run All Checks
+        run: |
+          echo "Running format check..."
+          npm run format:check
+          
+          echo "Running TypeScript & Lint checks..."
+          npm run type-check
+          npm run lint
+          
+          echo "Running tests..."
+          npm test
+          
+          echo "Checking for dead code..."
+          npx ts-prune
+        env:
+          CI: true
+          NODE_ENV: test
+
+      # Only upload coverage on main branch to save storage
+      - name: 📈 Upload Coverage
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 1
+          compression-level: 9 # Maximum compression to save storage 
