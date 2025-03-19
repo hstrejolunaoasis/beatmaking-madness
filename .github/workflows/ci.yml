@@ -21,59 +21,54 @@ on:
       - 'package-lock.json'
       - '.github/workflows/**'
 
-# Ensure only one workflow runs at a time per branch/PR
+# Cancel in-progress runs for PRs
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
-    name: 🔍 Verify & Test
+    name: Verify & Test
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Prevent runaway jobs
-    
+    timeout-minutes: 15
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: ⚡ Setup & Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            ${{ github.workspace }}/.next/cache
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: 📦 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: 💿 Install Dependencies
-        run: npm ci --legacy-peer-deps --prefer-offline --no-audit --ignore-scripts
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-
 
-      # Combined checks to save minutes (jobs round up to nearest minute)
-      - name: 🔍 Run All Checks
-        run: |
-          echo "Running lint & type checks..."
-          npm run lint
-          npm run type-check
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
 
-          echo "Running tests..."
-          npm test
+      - name: Type check
+        run: npm run type-check
 
-          echo "Running build..."
-          npm run build
-        env:
-          CI: true
-          NODE_ENV: test
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      - name: Lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test -- --coverage
+
+      - name: Build
+        if: github.base_ref == 'main' || contains(github.event.push.paths, 'src/') || contains(github.event.push.paths, 'prisma/')
+        run: npm run build
 
       # Run security checks only on main branch or if security-related files changed
       - name: 🔒 Security Checks
