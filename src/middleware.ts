@@ -3,6 +3,22 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  // Check if dev mode is enabled
+  const devMode = process.env.DEV_MODE === 'true' || process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  
+  // If dev mode is enabled and includes a dev-session query param for dashboard access, 
+  // allow access without authentication
+  if (devMode && request.nextUrl.pathname.startsWith('/dashboard') && 
+      (request.nextUrl.searchParams.has('dev-session'))) {
+    return NextResponse.next();
+  }
+  
+  // In dev mode, check for dev-mode cookie passed from client
+  if (devMode && request.nextUrl.pathname.startsWith('/dashboard') && 
+      request.cookies.has('dev-mode')) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -40,6 +56,21 @@ export async function middleware(request: NextRequest) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
+
+  // If dev mode is enabled, bypass authentication checks
+  if (devMode) {
+    // Set the dev session cookie if it's in the URL
+    if (request.nextUrl.searchParams.has('dev-session')) {
+      response.cookies.set({
+        name: 'dev-session',
+        value: 'true',
+        path: '/',
+        maxAge: 60 * 60 * 24, // 1 day
+        sameSite: 'lax',
+      });
+    }
+    return response;
+  }
 
   // If the user is not signed in and trying to access the dashboard, redirect to sign-in
   if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
