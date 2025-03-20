@@ -155,19 +155,40 @@ export const BeatForm: React.FC<BeatFormProps> = ({
       return path;
     }
     
-    // Extract the path from a Supabase URL
-    const matches = path.match(/\/storage\/v1\/object\/[^/]+\/([^?]+)/);
-    if (matches && matches[1]) {
-      return `/api/media/${matches[1]}`;
+    // For Supabase storage URLs with /storage/v1/object/ pattern
+    const storageMatch = path.match(/\/storage\/v1\/object\/[^/]+\/([^?]+)/);
+    if (storageMatch && storageMatch[1]) {
+      return `/api/media/${storageMatch[1]}`;
+    }
+    
+    // For Supabase URLs with 'private/' pattern (common after our backend fixes)
+    if (path.includes('private/')) {
+      // Extract the part after 'private/'
+      const privatePath = path.match(/private\/([^?]+)/);
+      if (privatePath && privatePath[1]) {
+        return `/api/media/${privatePath[1]}`;
+      }
+    }
+    
+    // For full Supabase URLs like https://[project].supabase.co/storage/v1/...
+    if (path.includes('supabase.co')) {
+      // Try to extract the relevant part after "beats/"
+      const supabasePath = path.match(/beats\/([^?]+)/);
+      if (supabasePath && supabasePath[1]) {
+        return `/api/media/${supabasePath[1]}`;
+      }
     }
     
     // If it's a relative path without the Supabase URL structure, use it directly
     if (!path.includes('://')) {
-      return `/api/media/${path}`;
+      // Make sure we don't double up on 'private/'
+      const cleanPath = path.startsWith('private/') ? path.substring(8) : path;
+      return `/api/media/${cleanPath}`;
     }
     
-    // Otherwise, return the original URL
-    return path;
+    // As a fallback, return the original URL
+    // But add a timestamp to bust cache in case the URL is cached
+    return `${path}${path.includes('?') ? '&' : '?'}t=${Date.now()}`;
   };
 
   // Helper function to extract filename from a path
@@ -177,6 +198,25 @@ export const BeatForm: React.FC<BeatFormProps> = ({
     // Extract just the filename without any prefixes
     const parts = path.split('/');
     return parts[parts.length - 1];
+  };
+
+  // Add debug functions for media issues
+  const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
+    console.error("Audio failed to load:", e.currentTarget.src);
+    toast({
+      title: "Audio load error",
+      description: "Unable to load audio file. Please try refreshing the page or contact support.",
+      variant: "destructive",
+    });
+  };
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    console.error("Image failed to load:", e.currentTarget.src);
+    toast({
+      title: "Image load error",
+      description: "Unable to load image file. Please try refreshing the page or contact support.",
+      variant: "destructive",
+    });
   };
 
   const onSubmit = async (data: BeatFormValues) => {
@@ -544,6 +584,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                             controls 
                             className="mt-2 max-w-full" 
                             src={getSecureMediaUrl(initialData.audioUrl)}
+                            onError={handleAudioError}
                           >
                             Your browser does not support the audio element.
                           </audio>
@@ -587,6 +628,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                             src={getSecureMediaUrl(initialData.imageUrl)} 
                             alt="Beat artwork" 
                             className="mt-2 max-w-[100px] max-h-[100px] rounded-md"
+                            onError={handleImageError}
                           />
                         </div>
                       )}
