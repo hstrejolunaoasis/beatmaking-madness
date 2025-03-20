@@ -23,6 +23,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Add a default empty description if not provided
+    if (data.description === undefined) {
+      data.description = "";
+    }
+
     const beat = await dbService.createBeat(data);
     return jsonResponse(successResponse(beat, "Beat created successfully"), 201);
   } catch (error) {

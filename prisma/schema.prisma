@@ -29,6 +29,7 @@ model Beat {
   tags        String[]
   genre       String
   mood        String
+  description String      @default("")
   imageUrl    String
   audioUrl    String
   waveformUrl String

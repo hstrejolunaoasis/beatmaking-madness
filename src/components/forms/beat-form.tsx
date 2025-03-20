@@ -37,6 +37,7 @@ const beatFormSchema = z.object({
   key: z.string().min(1, "Key is required"),
   genre: z.string().min(1, "Genre is required"),
   mood: z.string().min(1, "Mood is required"),
+  description: z.string().optional(),
   tags: z.string().transform((val) => val.split(",").map((tag) => tag.trim())),
   licenseIds: z.array(z.string()).optional(),
 });
@@ -105,6 +106,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
           key: "",
           genre: "",
           mood: "",
+          description: "",
           tags: "",
           licenseIds: [],
         },
@@ -242,6 +244,26 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          placeholder="Describe your beat..."
+                          className="resize-none min-h-[100px]"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Provide details about the beat, its style, and any other relevant information
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

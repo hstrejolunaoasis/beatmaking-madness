@@ -86,6 +86,18 @@ export const BeatColumns: ColumnDef<any>[] = [
     header: "Producer",
   },
   {
+    accessorKey: "description",
+    header: "Description",
+    cell: ({ row }) => {
+      const description = row.original.description || "No description";
+      return (
+        <span className="line-clamp-2 max-w-[200px]" title={description}>
+          {description}
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: "price",
     header: "Base Price",
     cell: ({ row }) => formatPrice(row.original.price),
