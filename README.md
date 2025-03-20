@@ -42,7 +42,7 @@ Beatmaking Madness is a professional e-commerce platform for music producers to 
    cd beatmaking-madness
    ```
 
-2. Install dependencies:
+2. Install dependencies:****
    ```bash
    npm install
    ```
