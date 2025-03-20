@@ -35,6 +35,7 @@ model Beat {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   OrderItem   OrderItem[]
+  licenses    BeatLicense[]
 }
 
 model Order {
@@ -71,6 +72,7 @@ model License {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   orderItems   OrderItem[]
+  beats        BeatLicense[]
 }
 
 model OrderItem {
@@ -84,6 +86,18 @@ model OrderItem {
   order         Order        @relation(fields: [orderId], references: [id])
   license       License      @relation(fields: [licenseId], references: [id])
   licenseType   LicenseType  @relation(fields: [licenseTypeId], references: [id])
+}
+
+model BeatLicense {
+  id        String   @id @default(cuid())
+  beatId    String
+  licenseId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  beat      Beat     @relation(fields: [beatId], references: [id], onDelete: Cascade)
+  license   License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  @@unique([beatId, licenseId])
 }
 
 enum Role {

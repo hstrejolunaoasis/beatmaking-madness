@@ -30,6 +30,23 @@ export type License = {
 export type CreateLicenseDTO = Omit<License, "id" | "createdAt" | "updatedAt" | "licenseType">;
 export type UpdateLicenseDTO = Partial<CreateLicenseDTO>;
 
+export interface Beat {
+  id: string;
+  title: string;
+  producer: string;
+  price: number;
+  bpm: number;
+  key: string;
+  tags: string[];
+  genre: string;
+  mood: string;
+  imageUrl: string;
+  audioUrl: string;
+  waveformUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // License API
 export const getLicenses = async (): Promise<License[]> => {
   const response = await axios.get(`${API_URL}/api/licenses`);
@@ -83,4 +100,97 @@ export const updateLicenseType = async (id: string, data: UpdateLicenseTypeDTO):
 
 export const deleteLicenseType = async (id: string): Promise<void> => {
   await axios.delete(`${API_URL}/api/license-types/${id}`);
+};
+
+// Beat API functions
+export const getBeats = async (): Promise<Beat[]> => {
+  const response = await fetch("/api/beats");
+  
+  if (!response.ok) {
+    throw new Error("Failed to fetch beats");
+  }
+  
+  const data = await response.json();
+  return data.data;
+};
+
+export const getBeat = async (id: string): Promise<Beat> => {
+  const response = await fetch(`/api/beats/${id}`);
+  
+  if (!response.ok) {
+    throw new Error("Failed to fetch beat");
+  }
+  
+  const data = await response.json();
+  return data.data;
+};
+
+export const createBeat = async (beat: Partial<Beat>): Promise<Beat> => {
+  const response = await fetch("/api/beats", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(beat),
+  });
+  
+  if (!response.ok) {
+    throw new Error("Failed to create beat");
+  }
+  
+  const data = await response.json();
+  return data.data;
+};
+
+export const updateBeat = async (id: string, beat: Partial<Beat>): Promise<Beat> => {
+  const response = await fetch(`/api/beats/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(beat),
+  });
+  
+  if (!response.ok) {
+    throw new Error("Failed to update beat");
+  }
+  
+  const data = await response.json();
+  return data.data;
+};
+
+export const deleteBeat = async (id: string): Promise<void> => {
+  const response = await fetch(`/api/beats/${id}`, {
+    method: "DELETE",
+  });
+  
+  if (!response.ok) {
+    throw new Error("Failed to delete beat");
+  }
+};
+
+// Beat-License association functions
+export const getBeatLicenses = async (beatId: string): Promise<any[]> => {
+  const response = await fetch(`/api/beats/${beatId}/licenses`);
+  
+  if (!response.ok) {
+    throw new Error("Failed to fetch beat licenses");
+  }
+  
+  const data = await response.json();
+  return data.data;
+};
+
+export const updateBeatLicenses = async (beatId: string, licenseIds: string[]): Promise<void> => {
+  const response = await fetch(`/api/beats/${beatId}/licenses`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ licenseIds }),
+  });
+  
+  if (!response.ok) {
+    throw new Error("Failed to update beat licenses");
+  }
 }; 

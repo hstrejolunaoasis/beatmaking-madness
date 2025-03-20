@@ -22,6 +22,54 @@ export const dbService = {
     });
   },
 
+  async updateBeat(id: string, data: Partial<Beat>) {
+    return db.beat.update({
+      where: { id },
+      data,
+    });
+  },
+
+  async deleteBeat(id: string) {
+    return db.beat.delete({
+      where: { id },
+    });
+  },
+
+  // Beat-License operations
+  async getBeatLicenses(beatId: string) {
+    const beatLicenses = await db.beatLicense.findMany({
+      where: { beatId },
+      include: {
+        license: {
+          include: {
+            licenseType: true,
+          },
+        },
+      },
+    });
+    
+    return beatLicenses.map(bl => bl.license);
+  },
+
+  async updateBeatLicenses(beatId: string, licenseIds: string[]) {
+    // First, delete all existing associations
+    await db.beatLicense.deleteMany({
+      where: { beatId },
+    });
+    
+    // Then create new associations
+    if (licenseIds.length > 0) {
+      await db.beatLicense.createMany({
+        data: licenseIds.map(licenseId => ({
+          beatId,
+          licenseId,
+        })),
+      });
+    }
+    
+    return true;
+  },
+
   // User operations
   async getUser(id: string) {
     return db.user.findUnique({

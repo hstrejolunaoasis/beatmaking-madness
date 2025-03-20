@@ -2,32 +2,36 @@
 export * from './client';
 
 // Export utility functions that use Supabase
-export async function uploadBeatFile(file: File, path: string) {
+export async function uploadBeatFile(file: File, folder = "beats") {
   const { supabase } = await import('./client');
-  const { data, error } = await supabase.storage
-    .from('beats')
-    .upload(path, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
-
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+  const filePath = `${folder}/${fileName}`;
+  
+  const { error } = await supabase.storage
+    .from('public')
+    .upload(filePath, file);
+  
   if (error) {
-    throw new Error(`Error uploading file: ${error.message}`);
+    throw error;
   }
-
-  return data;
+  
+  return filePath;
 }
 
-export async function createBeatWaveform(audioUrl: string, beatId: string) {
-  // In a real application, you would use a service like AudioSalad or WaveSurfer.js
-  // to generate waveforms for your audio files
-  // For this example, we'll just return a placeholder URL
-  return `https://placeholder-waveform.com/${beatId}.png`;
+export async function createBeatWaveform(filePath: string) {
+  // This is a placeholder for waveform generation
+  // In a real implementation, we would use an API or server function to generate the waveform
+  // For now, we'll return a placeholder URL
+  return `/api/waveform?path=${encodeURIComponent(filePath)}`;
 }
 
-export async function getBeatFileUrl(path: string) {
+export async function getBeatFileUrl(filePath: string) {
   const { supabase } = await import('./client');
-  const { data } = supabase.storage.from('beats').getPublicUrl(path);
+  const { data } = await supabase.storage
+    .from('public')
+    .getPublicUrl(filePath);
+  
   return data.publicUrl;
 }
 
