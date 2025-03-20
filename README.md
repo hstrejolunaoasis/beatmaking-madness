@@ -10,11 +10,12 @@ Beatmaking Madness is a professional e-commerce platform for music producers to 
 - 👨‍💻 **Producer Dashboard**: Upload and manage beats
 - 💾 **File Storage**: Secure audio and image file storage with Supabase
 - 🔒 **Secure Payments**: Integrated with Stripe for secure payments
+- 🎨 **Modern UI**: Sleek, responsive design with dark mode support
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15.2, React 19, TypeScript 5
-- **Styling**: Tailwind CSS 4, shadcn/ui
+- **Frontend**: Next.js 15.2 (App Router), React 19, TypeScript 5
+- **Styling**: Tailwind CSS 4, shadcn/ui, Radix UI
 - **Database**: PostgreSQL with Prisma 6 ORM
 - **Storage**: Supabase Storage
 - **Authentication**: @auth/nextjs
@@ -22,6 +23,7 @@ Beatmaking Madness is a professional e-commerce platform for music producers to 
 - **State Management**: Zustand 5
 - **Form Handling**: React Hook Form 7, Zod 3
 - **Data Fetching**: TanStack React Query 5
+- **Build Tool**: Turbopack for development
 
 ## Getting Started
 
@@ -75,7 +77,7 @@ Beatmaking Madness is a professional e-commerce platform for music producers to 
    npx prisma db push
    ```
 
-6. Start the development server:
+6. Start the development server with Turbopack:
    ```bash
    npm run dev
    ```
@@ -89,10 +91,13 @@ beatmaking-madness/
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   │   ├── (auth)/             # Authentication routes
+│   │   ├── auth/               # Auth-related pages
 │   │   ├── (dashboard)/        # Producer dashboard
 │   │   ├── (marketing)/        # Landing and marketing pages
 │   │   ├── (shop)/             # Store front
-│   │   └── api/                # API routes
+│   │   ├── api/                # API routes
+│   │   ├── layout.tsx          # Root layout
+│   │   └── page.tsx            # Home page
 │   ├── components/
 │   │   ├── ui/                 # shadcn UI components
 │   │   ├── common/             # Shared components
@@ -104,10 +109,12 @@ beatmaking-madness/
 │   │   ├── services/           # External services
 │   │   ├── store/              # Zustand stores
 │   │   └── config/             # Configuration
-│   └── types/                  # TypeScript types
+│   ├── types/                  # TypeScript types
+│   └── middleware.ts           # Next.js middleware
 ├── prisma/
 │   └── schema.prisma           # Database schema
-└── public/                     # Static assets
+├── public/                     # Static assets
+└── next.config.ts              # Next.js configuration
 ```
 
 ## Development Workflow
@@ -115,10 +122,35 @@ beatmaking-madness/
 - **Feature Branches**: Create a new branch for each feature
 - **TypeScript**: Use TypeScript for all new files
 - **Styling**: Use Tailwind CSS for styling
-- **Components**: Use shadcn/ui for UI components
+- **Components**: Use shadcn/ui and Radix UI for UI components
 - **Database**: Use Prisma for database access
 - **API Routes**: Create API routes in `app/api`
 - **Development**: Uses Turbopack for improved dev performance
+- **Server Components**: Favor React Server Components (RSC) where possible
+
+## License Management
+
+The platform offers a flexible license management system for beat producers:
+
+### License Tiers
+
+- **Basic License**: Non-exclusive rights, limited distribution, watermarked MP3 files
+- **Premium License**: Higher quality files (WAV), more distribution allowance, stems not included
+- **Exclusive License**: Full ownership transfer, unlimited distribution, includes stems and trackouts
+
+### Producer Controls
+
+- Create custom license agreements per beat
+- Set pricing for each license tier
+- Define usage rights and limitations
+- Track license sales and analyze revenue by license type
+
+### Technical Implementation
+
+- License metadata stored in PostgreSQL via Prisma
+- License agreements generated as PDFs after purchase
+- License verification system with unique codes
+- Automated delivery of appropriate file formats based on license tier
 
 ## Deployment
 
@@ -128,6 +160,13 @@ beatmaking-madness/
    ```
 
 2. Deploy to your hosting provider of choice (Vercel recommended for Next.js apps).
+
+## Performance Optimizations
+
+- React Server Components (RSC) for reduced client-side JavaScript
+- Image optimization with Next.js Image component
+- Streaming and Suspense for improved loading states
+- Efficient data fetching with TanStack React Query
 
 ## License
 
@@ -139,6 +178,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [React](https://react.dev/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [shadcn/ui](https://ui.shadcn.com/)
+- [Radix UI](https://www.radix-ui.com/)
 - [Prisma](https://www.prisma.io/)
 - [Supabase](https://supabase.io/)
 - [Stripe](https://stripe.com/)
