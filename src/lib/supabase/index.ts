@@ -32,7 +32,9 @@ export async function uploadBeatFile(file: File, folder = "beats") {
     
     const fileExt = file.name.split(".").pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `${folder}/${fileName}`;
+    
+    // Add 'private/' prefix to path as required by bucket policy
+    const filePath = `private/${folder}/${fileName}`;
     
     const { supabase } = await import('./client');
     

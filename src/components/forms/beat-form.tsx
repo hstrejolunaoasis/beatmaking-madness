@@ -170,6 +170,15 @@ export const BeatForm: React.FC<BeatFormProps> = ({
     return path;
   };
 
+  // Helper function to extract filename from a path
+  const getFileNameFromPath = (path: string) => {
+    if (!path) return '';
+    
+    // Extract just the filename without any prefixes
+    const parts = path.split('/');
+    return parts[parts.length - 1];
+  };
+
   const onSubmit = async (data: BeatFormValues) => {
     try {
       setLoading(true);
@@ -530,7 +539,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                       )}
                       {initialData?.audioUrl && !audioFile && (
                         <div className="text-sm">
-                          <p>Current audio: {initialData.audioUrl.split("/").pop()}</p>
+                          <p>Current audio: {getFileNameFromPath(initialData.audioUrl)}</p>
                           <audio 
                             controls 
                             className="mt-2 max-w-full" 
@@ -573,7 +582,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                       )}
                       {initialData?.imageUrl && !imageFile && (
                         <div className="text-sm">
-                          <p>Current image: {initialData.imageUrl.split("/").pop()}</p>
+                          <p>Current image: {getFileNameFromPath(initialData.imageUrl)}</p>
                           <img 
                             src={getSecureMediaUrl(initialData.imageUrl)} 
                             alt="Beat artwork" 

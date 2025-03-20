@@ -7,14 +7,21 @@ export async function GET(
   { params }: { params: { path: string[] } }
 ) {
   try {
-    // Require authentication
+    // Require authentication - this is essential for the bucket policy
     const user = await getCurrentUser();
     if (!user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     // Get the file path from the URL params
-    const filePath = params.path.join("/");
+    let filePath = params.path.join("/");
+    
+    // Add 'private/' prefix if not already there to match bucket policy
+    if (!filePath.startsWith("private/")) {
+      filePath = `private/${filePath}`;
+    }
+    
+    console.log("Accessing file:", filePath);
     
     // Create a Supabase client with admin privileges
     const supabaseAdmin = createClient(

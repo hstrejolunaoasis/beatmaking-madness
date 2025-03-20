@@ -14,11 +14,20 @@ export function getSecureMediaUrl(path: string): string {
   // Extract the path from a Supabase URL
   const matches = path.match(/\/storage\/v1\/object\/[^/]+\/([^?]+)/);
   if (matches && matches[1]) {
-    return `/api/media/${matches[1]}`;
+    const storagePath = matches[1];
+    // Return only the part after 'private/' if present since our API adds it automatically
+    if (storagePath.startsWith('private/')) {
+      return `/api/media/${storagePath.substring(8)}`;
+    }
+    return `/api/media/${storagePath}`;
   }
   
   // If it's a relative path without the Supabase URL structure, use it directly
   if (!path.includes('://')) {
+    // Remove 'private/' prefix if present since our API adds it automatically
+    if (path.startsWith('private/')) {
+      return `/api/media/${path.substring(8)}`;
+    }
     return `/api/media/${path}`;
   }
   
