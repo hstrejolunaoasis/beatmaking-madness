@@ -146,9 +146,56 @@ export const BeatForm: React.FC<BeatFormProps> = ({
     }
   };
 
+  // Add a function to convert storage URLs to secure API URLs
+  const getSecureMediaUrl = (path: string) => {
+    if (!path) return '';
+    
+    // If it's already using our secure API endpoint, return as is
+    if (path.startsWith('/api/media/')) {
+      return path;
+    }
+    
+    // Extract the path from a Supabase URL
+    const matches = path.match(/\/storage\/v1\/object\/[^/]+\/([^?]+)/);
+    if (matches && matches[1]) {
+      return `/api/media/${matches[1]}`;
+    }
+    
+    // If it's a relative path without the Supabase URL structure, use it directly
+    if (!path.includes('://')) {
+      return `/api/media/${path}`;
+    }
+    
+    // Otherwise, return the original URL
+    return path;
+  };
+
   const onSubmit = async (data: BeatFormValues) => {
     try {
       setLoading(true);
+
+      // Validate required files for new beats
+      if (!initialData && !audioFile) {
+        toast({
+          title: "Missing audio file",
+          description: "Please upload an audio file for your beat",
+          variant: "destructive",
+        });
+        setActiveTab("audio");
+        setLoading(false);
+        return;
+      }
+
+      if (!initialData && !imageFile) {
+        toast({
+          title: "Missing image file",
+          description: "Please upload an image for your beat",
+          variant: "destructive",
+        });
+        setActiveTab("audio");
+        setLoading(false);
+        return;
+      }
 
       let audioUrl = initialData?.audioUrl || "";
       let waveformUrl = initialData?.waveformUrl || "";
@@ -156,15 +203,42 @@ export const BeatForm: React.FC<BeatFormProps> = ({
 
       // Handle audio upload if a new file is selected
       if (audioFile) {
-        const filePath = await uploadBeatFile(audioFile);
-        audioUrl = await getBeatFileUrl(filePath);
-        waveformUrl = await createBeatWaveform(filePath);
+        try {
+          console.log("Uploading audio file...");
+          const filePath = await uploadBeatFile(audioFile);
+          console.log("Audio file uploaded successfully, getting URL...");
+          audioUrl = await getBeatFileUrl(filePath);
+          console.log("Creating waveform...");
+          waveformUrl = await createBeatWaveform(filePath);
+        } catch (uploadError) {
+          console.error("Audio upload error:", uploadError);
+          toast({
+            title: "Audio upload failed",
+            description: uploadError instanceof Error ? uploadError.message : "Failed to upload audio file. Please try again.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
       }
 
       // Handle image upload if a new file is selected
       if (imageFile) {
-        const filePath = await uploadBeatFile(imageFile, "beat-images");
-        imageUrl = await getBeatFileUrl(filePath);
+        try {
+          console.log("Uploading image file...");
+          const filePath = await uploadBeatFile(imageFile, "beat-images");
+          console.log("Image file uploaded successfully, getting URL...");
+          imageUrl = await getBeatFileUrl(filePath);
+        } catch (uploadError) {
+          console.error("Image upload error:", uploadError);
+          toast({
+            title: "Image upload failed",
+            description: uploadError instanceof Error ? uploadError.message : "Failed to upload image file. Please try again.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
       }
 
       const beatData = {
@@ -176,17 +250,43 @@ export const BeatForm: React.FC<BeatFormProps> = ({
 
       let beatId = "";
 
-      if (initialData) {
-        const updatedBeat = await updateBeat(initialData.id, beatData);
-        beatId = updatedBeat.id;
-      } else {
-        const newBeat = await createBeat(beatData);
-        beatId = newBeat.id;
+      try {
+        if (initialData) {
+          console.log("Updating existing beat...");
+          const updatedBeat = await updateBeat(initialData.id, beatData);
+          beatId = updatedBeat.id;
+        } else {
+          console.log("Creating new beat...");
+          const newBeat = await createBeat(beatData);
+          beatId = newBeat.id;
+        }
+      } catch (beatError) {
+        console.error("Beat save error:", beatError);
+        toast({
+          title: "Beat save failed",
+          description: beatError instanceof Error 
+            ? beatError.message 
+            : `Failed to ${initialData ? "update" : "create"} beat. Please check all required fields.`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
       }
 
       // Handle license associations
       if (data.licenseIds && data.licenseIds.length > 0) {
-        await updateBeatLicenses(beatId, data.licenseIds);
+        try {
+          console.log("Updating beat licenses...");
+          await updateBeatLicenses(beatId, data.licenseIds);
+        } catch (licenseError) {
+          console.error("License association error:", licenseError);
+          // We'll continue even if this fails, as the beat is already saved
+          toast({
+            title: "Warning",
+            description: "Beat saved, but there was an issue with license assignments.",
+            variant: "default",
+          });
+        }
       }
 
       router.refresh();
@@ -202,7 +302,9 @@ export const BeatForm: React.FC<BeatFormProps> = ({
       console.error("Error submitting beat:", error);
       toast({
         title: "Error",
-        description: `Failed to ${initialData ? "update" : "create"} beat. Please try again.`,
+        description: error instanceof Error 
+          ? error.message 
+          : `Failed to ${initialData ? "update" : "create"} beat. Please try again.`,
         variant: "destructive",
       });
     } finally {
@@ -427,7 +529,16 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                         <p className="text-sm">{audioFile.name}</p>
                       )}
                       {initialData?.audioUrl && !audioFile && (
-                        <p className="text-sm">Current audio: {initialData.audioUrl.split("/").pop()}</p>
+                        <div className="text-sm">
+                          <p>Current audio: {initialData.audioUrl.split("/").pop()}</p>
+                          <audio 
+                            controls 
+                            className="mt-2 max-w-full" 
+                            src={getSecureMediaUrl(initialData.audioUrl)}
+                          >
+                            Your browser does not support the audio element.
+                          </audio>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -461,7 +572,14 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                         <p className="text-sm">{imageFile.name}</p>
                       )}
                       {initialData?.imageUrl && !imageFile && (
-                        <p className="text-sm">Current image: {initialData.imageUrl.split("/").pop()}</p>
+                        <div className="text-sm">
+                          <p>Current image: {initialData.imageUrl.split("/").pop()}</p>
+                          <img 
+                            src={getSecureMediaUrl(initialData.imageUrl)} 
+                            alt="Beat artwork" 
+                            className="mt-2 max-w-[100px] max-h-[100px] rounded-md"
+                          />
+                        </div>
                       )}
                     </div>
                   </div>

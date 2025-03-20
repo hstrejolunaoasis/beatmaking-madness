@@ -19,6 +19,7 @@ import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { deleteBeat } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
+import { getSecureMediaUrl } from "@/lib/utils/media";
 
 interface BeatDeleteProp {
   id: string;
@@ -71,7 +72,7 @@ export const BeatColumns: ColumnDef<any>[] = [
     cell: ({ row }) => {
       return (
         <Avatar className="h-12 w-12 rounded-md">
-          <AvatarImage src={row.original.imageUrl} alt={row.original.title} />
+          <AvatarImage src={getSecureMediaUrl(row.original.imageUrl)} alt={row.original.title} />
           <AvatarFallback className="rounded-md">{row.original.title.charAt(0)}</AvatarFallback>
         </Avatar>
       );
