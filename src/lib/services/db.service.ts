@@ -23,9 +23,12 @@ export const dbService = {
   },
 
   async updateBeat(id: string, data: Partial<Beat>) {
+    // Filter out licenseIds from data as it's not a direct field on the Beat model
+    const { licenseIds, ...beatData } = data as Partial<Beat> & { licenseIds?: string[] };
+    
     return db.beat.update({
       where: { id },
-      data,
+      data: beatData,
     });
   },
 
