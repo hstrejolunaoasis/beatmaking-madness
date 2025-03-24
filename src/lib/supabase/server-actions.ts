@@ -5,7 +5,8 @@ import { createClient } from './server';
 
 // Safe to use in Server Components and Server Actions
 export async function getServerClient() {
-  return createClient(cookies());
+  const cookieStore = cookies();
+  return await createClient(cookieStore);
 }
 
 export async function getCurrentUser() {

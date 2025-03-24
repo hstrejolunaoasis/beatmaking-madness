@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Music, Upload, ImageIcon } from "lucide-react";
+import { Loader2, Music, Upload, ImageIcon, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createBeat, updateBeat, Beat, getLicenses, getBeatLicenses, updateBeatLicenses } from "@/lib/api-client";
 import { uploadBeatFile, getBeatFileUrl, createBeatWaveform } from "@/lib/supabase";
@@ -152,13 +152,18 @@ export const BeatForm: React.FC<BeatFormProps> = ({
     
     // If it's already using our secure API endpoint, return as is
     if (path.startsWith('/api/media/')) {
-      return path;
+      // If URL already has a timestamp or retry param, return it unchanged
+      if (path.includes('t=') || path.includes('retry=')) {
+        return path;
+      }
+      // Otherwise add a cache-busting timestamp
+      return `${path}${path.includes('?') ? '&' : '?'}t=${Date.now()}`;
     }
     
     // For Supabase storage URLs with /storage/v1/object/ pattern
     const storageMatch = path.match(/\/storage\/v1\/object\/[^/]+\/([^?]+)/);
     if (storageMatch && storageMatch[1]) {
-      return `/api/media/${storageMatch[1]}`;
+      return `/api/media/${storageMatch[1]}?t=${Date.now()}`;
     }
     
     // For Supabase URLs with 'private/' pattern (common after our backend fixes)
@@ -166,7 +171,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
       // Extract the part after 'private/'
       const privatePath = path.match(/private\/([^?]+)/);
       if (privatePath && privatePath[1]) {
-        return `/api/media/${privatePath[1]}`;
+        return `/api/media/${privatePath[1]}?t=${Date.now()}`;
       }
     }
     
@@ -175,7 +180,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
       // Try to extract the relevant part after "beats/"
       const supabasePath = path.match(/beats\/([^?]+)/);
       if (supabasePath && supabasePath[1]) {
-        return `/api/media/${supabasePath[1]}`;
+        return `/api/media/${supabasePath[1]}?t=${Date.now()}`;
       }
     }
     
@@ -183,11 +188,10 @@ export const BeatForm: React.FC<BeatFormProps> = ({
     if (!path.includes('://')) {
       // Make sure we don't double up on 'private/'
       const cleanPath = path.startsWith('private/') ? path.substring(8) : path;
-      return `/api/media/${cleanPath}`;
+      return `/api/media/${cleanPath}?t=${Date.now()}`;
     }
     
-    // As a fallback, return the original URL
-    // But add a timestamp to bust cache in case the URL is cached
+    // As a fallback, return the original URL with a timestamp
     return `${path}${path.includes('?') ? '&' : '?'}t=${Date.now()}`;
   };
 
@@ -203,6 +207,16 @@ export const BeatForm: React.FC<BeatFormProps> = ({
   // Add debug functions for media issues
   const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
     console.error("Audio failed to load:", e.currentTarget.src);
+    // Add timestamp to URL to bust cache and retry loading
+    if (e.currentTarget.src && !e.currentTarget.src.includes('retry=true')) {
+      const retryUrl = new URL(e.currentTarget.src);
+      retryUrl.searchParams.set('retry', 'true');
+      retryUrl.searchParams.set('t', Date.now().toString());
+      console.log("Retrying with URL:", retryUrl.toString());
+      e.currentTarget.src = retryUrl.toString();
+      return;
+    }
+    
     toast({
       title: "Audio load error",
       description: "Unable to load audio file. Please try refreshing the page or contact support.",
@@ -212,6 +226,16 @@ export const BeatForm: React.FC<BeatFormProps> = ({
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     console.error("Image failed to load:", e.currentTarget.src);
+    // Add timestamp to URL to bust cache and retry loading
+    if (e.currentTarget.src && !e.currentTarget.src.includes('retry=true')) {
+      const retryUrl = new URL(e.currentTarget.src);
+      retryUrl.searchParams.set('retry', 'true');
+      retryUrl.searchParams.set('t', Date.now().toString());
+      console.log("Retrying with URL:", retryUrl.toString());
+      e.currentTarget.src = retryUrl.toString();
+      return;
+    }
+    
     toast({
       title: "Image load error",
       description: "Unable to load image file. Please try refreshing the page or contact support.",
@@ -580,14 +604,44 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                       {initialData?.audioUrl && !audioFile && (
                         <div className="text-sm">
                           <p>Current audio: {getFileNameFromPath(initialData.audioUrl)}</p>
-                          <audio 
-                            controls 
-                            className="mt-2 max-w-full" 
-                            src={getSecureMediaUrl(initialData.audioUrl)}
-                            onError={handleAudioError}
-                          >
-                            Your browser does not support the audio element.
-                          </audio>
+                          <div className="mt-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mb-2"
+                              onClick={() => {
+                                const audio = document.getElementById('current-audio') as HTMLAudioElement;
+                                if (audio) {
+                                  if (audio.paused) {
+                                    audio.play().catch(err => {
+                                      console.error("Error playing audio:", err);
+                                      toast({
+                                        title: "Playback error",
+                                        description: "Could not play the audio file. Please try again.",
+                                        variant: "destructive",
+                                      });
+                                    });
+                                  } else {
+                                    audio.pause();
+                                  }
+                                }
+                              }}
+                            >
+                              <Play className="mr-2 h-4 w-4" />
+                              Play/Pause
+                            </Button>
+                            <audio 
+                              id="current-audio"
+                              controls 
+                              className="max-w-full" 
+                              src={getSecureMediaUrl(initialData.audioUrl)}
+                              onError={handleAudioError}
+                              preload="none"
+                            >
+                              Your browser does not support the audio element.
+                            </audio>
+                          </div>
                         </div>
                       )}
                     </div>

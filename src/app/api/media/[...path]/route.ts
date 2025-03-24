@@ -9,7 +9,9 @@ export async function GET(
   { params }: { params: { path: string[] } }
 ) {
   try {
-    const filePath = params.path.join("/");
+    // Fix: Await params before accessing path property
+    const pathParams = await params.path;
+    const filePath = pathParams.join("/");
     console.log("Media API request for:", filePath);
     
     // Handle special case for waveform placeholder
@@ -95,11 +97,13 @@ export async function GET(
       if (listError || !fileList || fileList.length === 0) {
         console.error("File not found in Supabase:", supabasePath, listError);
         
-        // Try without the 'private/' prefix as a fallback
-        if (supabasePath.startsWith('private/')) {
+        // Try without the 'private/' prefix as a fallback, but avoid redirect loops
+        if (supabasePath.startsWith('private/') && !request.url.includes('retry=true')) {
           const altPath = supabasePath.substring(8);
           console.log("Trying alternate path:", altPath);
-          return NextResponse.redirect(new URL(`/api/media/${altPath}`, request.url));
+          const redirectUrl = new URL(`/api/media/${altPath}`, request.url);
+          redirectUrl.searchParams.set('retry', 'true');
+          return NextResponse.redirect(redirectUrl);
         }
         
         return new NextResponse("File not found in storage", { status: 404 });

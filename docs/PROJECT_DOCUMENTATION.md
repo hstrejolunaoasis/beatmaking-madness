@@ -15,6 +15,8 @@
 12. [Project Status](#project-status)
 13. [Roadmap](#roadmap)
 14. [Contributing](#contributing)
+15. [Media Handling](#media-handling)
+16. [Next.js Best Practices](#next-js-best-practices)
 
 ## Project Overview
 
@@ -220,6 +222,44 @@ Custom audio player with the following features:
 - Integration tests for feature flows
 - End-to-end tests for critical paths
 
+## Media Handling
+
+The application implements a secure media delivery system for audio files and images:
+
+### Media API
+
+The system uses a custom media API to serve protected files from Supabase Storage:
+
+- Secure access to media files via authenticated API routes
+- Cache optimization with timestamp-based cache busting
+- Error handling with automatic retry mechanisms
+- Support for various media formats (MP3, WAV, JPEG, PNG)
+
+### Implementation Details
+
+- **API Route:** `GET /api/media/[...path]`
+  - Securely serves files from Supabase storage
+  - Requires authentication for private files
+  - Implements proper MIME types and cache headers
+  - Handles waveform placeholders and fallbacks
+
+- **Media Utilities:**
+  - `getSecureMediaUrl()`: Converts storage URLs to secure API URLs
+  - Cache-busting with timestamp parameters
+  - Automatic path normalization
+
+- **Client Components:**
+  - Error handling with retry mechanisms
+  - Custom audio player with playback controls
+  - Lazy loading of media files for improved performance
+
+### Optimizations
+
+- Direct file serving when possible for better performance
+- Fallback to signed URLs when direct access fails
+- Prevention of redirect loops and infinite retries
+- Proper awaiting of asynchronous Next.js APIs
+
 ## API Reference
 
 The application provides the following API endpoints:
@@ -248,6 +288,14 @@ The application provides the following API endpoints:
 - `POST /api/orders`: Create new order
 - `GET /api/orders`: List user orders
 - `GET /api/orders/{id}`: Get order details
+
+### Media
+
+- `GET /api/media/[...path]`: Securely serve media files
+  - Requires authentication for private files
+  - Handles various media types (audio, images)
+  - Implements cache control and optimization
+  - Provides fallbacks for missing files
 
 ## Environment Configuration
 
@@ -362,6 +410,53 @@ STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
 - Maintain or improve code coverage
 - Follow coding standards
 
+## Next.js Best Practices
+
+### Next.js 15 and App Router Patterns
+
+- **Server Components:** Use RSC by default, add 'use client' only when needed
+- **Data Fetching:** Prefer server-side data fetching in Server Components
+- **Dynamic Routes:** Implement proper dynamic routes with params handling
+- **Error Handling:** Use error.tsx files for error boundaries
+- **Middleware:** Implement authentication checks in middleware
+
+### App Router Async Handling
+
+Next.js 15 requires proper handling of asynchronous APIs:
+
+- **Async API Usage:**
+  - Always await cookies(), headers(), and other Next.js APIs before accessing properties
+  - Properly await params in dynamic routes
+  - Use async versions of runtime APIs
+
+```typescript
+// Correct async API usage
+const cookieStore = await cookies();
+const headersList = await headers();
+const { isEnabled } = await draftMode();
+
+// Correct params handling in dynamic routes
+export async function YourRoute(
+  request: Request,
+  { params }: { params: { slug: string } }
+) {
+  const slug = await params.slug;
+  // Rest of the code
+}
+```
+
+- **Async Components:**
+  - Use async/await in Server Components
+  - Implement proper suspense boundaries for async operations
+  - Handle loading states appropriately
+
+### Optimization Techniques
+
+- **Partial Prerendering:** Use PPR for static content with dynamic islands
+- **Static Site Generation:** Use generateStaticParams for static routes
+- **Dynamic Rendering:** Use dynamic flags for routes requiring request-time data
+- **Streaming:** Implement streaming responses for large data sets
+
 ---
 
-Last Updated: 2024-03-24 
+Last Updated: 2024-07-12 
