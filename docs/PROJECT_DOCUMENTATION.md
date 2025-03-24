@@ -208,6 +208,17 @@ Custom audio player with the following features:
 - **Form State:** Use React Hook Form with Zod validation
 - **URL State:** Use URL parameters for shareable UI state
 
+### Data Handling
+
+- **Database Operations:** Use the dbService for all database operations
+- **Model Relationships:**
+  - When updating beat data, never pass `licenseIds` directly to the update operation
+  - Always use the `updateBeatLicenses` method to manage beat-license associations
+  - Form submissions with relationship data should split operations:
+    1. Update the main entity first (e.g., beat)
+    2. Update relationships separately (e.g., beat-license associations)
+  - The database service automatically filters out relationship fields not directly on models
+
 ### UI/UX Standards
 
 - **UI Components:** Use shadcn/ui and Radix UI components
@@ -275,13 +286,17 @@ The application provides the following API endpoints:
 - `GET /api/beats`: List beats with filtering
 - `GET /api/beats/{id}`: Get beat details
 - `POST /api/beats`: Create new beat (producer only)
-- `PUT /api/beats/{id}`: Update beat (producer only)
+- `PATCH /api/beats/{id}`: Update beat (producer only)
+  - Automatically filters out `licenseIds` field from input data
+  - Beat-license associations should be managed via dedicated license endpoints
 - `DELETE /api/beats/{id}`: Delete beat (producer only)
 
 ### Licenses
 
 - `GET /api/licenses`: List licenses
 - `GET /api/beats/{beatId}/licenses`: Get licenses for a beat
+- `PATCH /api/beats/{beatId}/licenses`: Update licenses for a beat
+  - Accepts `licenseIds` array to associate licenses with the beat
 
 ### Orders
 
