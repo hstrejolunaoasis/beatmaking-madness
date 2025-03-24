@@ -19,20 +19,34 @@ export function getSecureMediaUrl(path: string): string {
   // Extract the path from a Supabase URL
   const matches = path.match(/\/storage\/v1\/object\/[^/]+\/([^?]+)/);
   if (matches && matches[1]) {
-    const storagePath = matches[1];
-    // Return only the part after 'private/' if present since our API adds it automatically
-    if (storagePath.startsWith('private/')) {
-      return `/api/media/${storagePath.substring(8)}?t=${Date.now()}`;
+    let storagePath = matches[1];
+    
+    // Properly handle paths with 'private/' in them
+    if (storagePath.includes('private/')) {
+      // Extract everything after the first occurrence of 'private/'
+      const privateParts = storagePath.split('private/');
+      if (privateParts.length > 1) {
+        // Our API will add 'private/' prefix, so just use what comes after it
+        return `/api/media/${privateParts[1]}?t=${Date.now()}`;
+      }
     }
+    
     return `/api/media/${storagePath}?t=${Date.now()}`;
   }
   
   // If it's a relative path without the Supabase URL structure, use it directly
   if (!path.includes('://')) {
-    // Remove 'private/' prefix if present since our API adds it automatically
-    if (path.startsWith('private/')) {
-      return `/api/media/${path.substring(8)}?t=${Date.now()}`;
+    // Handle paths with 'private/' in them
+    if (path.includes('private/')) {
+      // Extract everything after the first occurrence of 'private/'
+      const privateParts = path.split('private/');
+      if (privateParts.length > 1) {
+        // Our API will add 'private/' prefix, so just use what comes after it
+        return `/api/media/${privateParts[1]}?t=${Date.now()}`;
+      }
     }
+    
+    // For paths without 'private/', pass as is - the API will add the prefix
     return `/api/media/${path}?t=${Date.now()}`;
   }
   

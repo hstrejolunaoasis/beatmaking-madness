@@ -163,15 +163,28 @@ export const BeatForm: React.FC<BeatFormProps> = ({
     // For Supabase storage URLs with /storage/v1/object/ pattern
     const storageMatch = path.match(/\/storage\/v1\/object\/[^/]+\/([^?]+)/);
     if (storageMatch && storageMatch[1]) {
-      return `/api/media/${storageMatch[1]}?t=${Date.now()}`;
+      const storagePath = storageMatch[1];
+      
+      // Handle paths with 'private/' in them
+      if (storagePath.includes('private/')) {
+        // Extract everything after the first occurrence of 'private/'
+        const privateParts = storagePath.split('private/');
+        if (privateParts.length > 1) {
+          // API will add 'private/' prefix, so just use what comes after it
+          return `/api/media/${privateParts[1]}?t=${Date.now()}`;
+        }
+      }
+      
+      return `/api/media/${storagePath}?t=${Date.now()}`;
     }
     
-    // For Supabase URLs with 'private/' pattern (common after our backend fixes)
+    // For Supabase URLs with 'private/' pattern
     if (path.includes('private/')) {
-      // Extract the part after 'private/'
-      const privatePath = path.match(/private\/([^?]+)/);
-      if (privatePath && privatePath[1]) {
-        return `/api/media/${privatePath[1]}?t=${Date.now()}`;
+      // Extract everything after the first occurrence of 'private/'
+      const privateParts = path.split('private/');
+      if (privateParts.length > 1) {
+        // API will add 'private/' prefix, so just use what comes after it
+        return `/api/media/${privateParts[1]}?t=${Date.now()}`;
       }
     }
     
@@ -180,15 +193,29 @@ export const BeatForm: React.FC<BeatFormProps> = ({
       // Try to extract the relevant part after "beats/"
       const supabasePath = path.match(/beats\/([^?]+)/);
       if (supabasePath && supabasePath[1]) {
+        // Check if extracted path has 'private/' in it
+        if (supabasePath[1].includes('private/')) {
+          const privateParts = supabasePath[1].split('private/');
+          if (privateParts.length > 1) {
+            return `/api/media/${privateParts[1]}?t=${Date.now()}`;
+          }
+        }
         return `/api/media/${supabasePath[1]}?t=${Date.now()}`;
       }
     }
     
-    // If it's a relative path without the Supabase URL structure, use it directly
+    // If it's a relative path without the Supabase URL structure
     if (!path.includes('://')) {
-      // Make sure we don't double up on 'private/'
-      const cleanPath = path.startsWith('private/') ? path.substring(8) : path;
-      return `/api/media/${cleanPath}?t=${Date.now()}`;
+      // Handle any path with 'private/' in it
+      if (path.includes('private/')) {
+        const privateParts = path.split('private/');
+        if (privateParts.length > 1) {
+          return `/api/media/${privateParts[1]}?t=${Date.now()}`;
+        }
+      }
+      
+      // If no 'private/' in path, use as is (API will add prefix)
+      return `/api/media/${path}?t=${Date.now()}`;
     }
     
     // As a fallback, return the original URL with a timestamp

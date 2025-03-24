@@ -63,10 +63,28 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    // Add 'private/' prefix if not already there to match bucket policy
+    // Improved path handling to prevent 'private/' duplication
     let supabasePath = filePath;
-    if (!supabasePath.startsWith("private/")) {
+    
+    // Check if the path already contains 'private/' anywhere (not just at the start)
+    const containsPrivatePrefix = supabasePath.includes('private/');
+    
+    console.log("Path analysis:", {
+      originalPath: filePath,
+      containsPrivatePrefix
+    });
+    
+    // Only add 'private/' if it's not already in the path
+    if (!containsPrivatePrefix) {
       supabasePath = `private/${supabasePath}`;
+    } else if (!supabasePath.startsWith('private/')) {
+      // If 'private/' is in the middle of the path (e.g., 'beats/private/something'),
+      // we need to extract the correct part
+      const privateParts = supabasePath.split('private/');
+      if (privateParts.length > 1) {
+        // Take everything after the first occurrence of 'private/'
+        supabasePath = `private/${privateParts[1]}`;
+      }
     }
     
     console.log("Accessing Supabase file:", supabasePath);
@@ -97,9 +115,14 @@ export async function GET(
       if (listError || !fileList || fileList.length === 0) {
         console.error("File not found in Supabase:", supabasePath, listError);
         
-        // Try without the 'private/' prefix as a fallback, but avoid redirect loops
-        if (supabasePath.startsWith('private/') && !request.url.includes('retry=true')) {
-          const altPath = supabasePath.substring(8);
+        // Try a different approach if not found and not in a retry loop
+        if (!request.url.includes('retry=true')) {
+          // Try without any 'private/' prefix as a fallback
+          let altPath = supabasePath;
+          if (supabasePath.startsWith('private/')) {
+            altPath = supabasePath.substring(8);
+          }
+          
           console.log("Trying alternate path:", altPath);
           const redirectUrl = new URL(`/api/media/${altPath}`, request.url);
           redirectUrl.searchParams.set('retry', 'true');
