@@ -20,6 +20,7 @@ import { toast } from "@/components/ui/use-toast";
 import { deleteBeat } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import { getSecureMediaUrl } from "@/lib/utils/media";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface BeatDeleteProp {
   id: string;
@@ -117,6 +118,45 @@ export const BeatColumns: ColumnDef<any>[] = [
     cell: ({ row }) => (
       <Badge variant="outline">{row.original.genre}</Badge>
     ),
+  },
+  {
+    accessorKey: "licenses",
+    header: "Licenses",
+    cell: ({ row }) => {
+      const licenses = row.original.licenses || [];
+      
+      if (!licenses.length) {
+        return <span className="text-muted-foreground text-xs">No licenses</span>;
+      }
+      
+      return (
+        <div className="flex flex-wrap gap-1">
+          {licenses.map((licenseRelation: any, index: number) => {
+            const license = licenseRelation.license;
+            return (
+              <TooltipProvider key={license.id} delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="secondary"
+                      className="cursor-help"
+                    >
+                      {license.name}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="space-y-1">
+                      <p className="font-medium">{license.name}</p>
+                      <p className="text-sm text-muted-foreground">{formatPrice(license.price)}</p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          })}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "createdAt",

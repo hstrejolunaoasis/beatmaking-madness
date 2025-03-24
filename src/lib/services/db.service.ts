@@ -7,6 +7,17 @@ export const dbService = {
   async getBeats() {
     return db.beat.findMany({
       orderBy: { createdAt: "desc" },
+      include: {
+        licenses: {
+          include: {
+            license: {
+              include: {
+                licenseType: true
+              }
+            }
+          }
+        }
+      }
     });
   },
 
