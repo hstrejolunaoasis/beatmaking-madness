@@ -76,7 +76,14 @@ The application's data schema is defined in Prisma and consists of the following
 - Represents a music beat with metadata (title, producer, BPM, etc.)
 - Audio and image file references
 - Available licenses
+- Relation to genres
 - Relation to orders
+
+### Genre
+- Categorizes beats by musical style
+- Contains name, slug, and description
+- Can be activated/deactivated to control availability
+- One-to-many relationship with beats
 
 ### License
 - License configuration with pricing and features
@@ -109,6 +116,11 @@ beatmaking-madness/
 │   │   ├── (auth)/             # Authentication routes
 │   │   ├── auth/               # Auth-related pages
 │   │   ├── (dashboard)/        # Producer dashboard
+│   │   │   └── dashboard/      # Dashboard pages
+│   │   │       ├── beats/      # Beat management
+│   │   │       ├── genres/     # Genre management
+│   │   │       ├── licenses/   # License management
+│   │   │       └── license-types/ # License type management
 │   │   ├── (marketing)/        # Landing and marketing pages
 │   │   ├── (shop)/             # Store front
 │   │   ├── api/                # API routes
@@ -153,6 +165,21 @@ The beat catalog allows artists to browse and preview beats:
 - Search functionality by genre, mood, BPM, and keywords
 - Audio preview with waveform visualization
 - License information and pricing
+
+### Genre Management
+
+The platform provides a complete genre management system for organizing beats:
+
+- **Genre Features:**
+  - CRUD operations for genre management
+  - Activate/deactivate genres to control availability
+  - Beats can be assigned to specific genres
+  - Genre filtering in beat catalog
+
+- **Admin Controls:**
+  - Create, edit, and delete genres
+  - View beat count per genre
+  - Prevent deletion of genres in use
 
 ### License Management
 
@@ -273,44 +300,53 @@ The system uses a custom media API to serve protected files from Supabase Storag
 
 ## API Reference
 
-The application provides the following API endpoints:
-
 ### Authentication
 
-- `POST /api/auth/login`: Authenticate user
-- `POST /api/auth/register`: Register new user
-- `GET /api/auth/me`: Get current user information
+- **POST /api/auth/signin**: Sign in with credentials
+- **POST /api/auth/signout**: Sign out current user
+- **GET /api/auth/session**: Get current session data
 
 ### Beats
 
-- `GET /api/beats`: List beats with filtering
-- `GET /api/beats/{id}`: Get beat details
-- `POST /api/beats`: Create new beat (producer only)
-- `PATCH /api/beats/{id}`: Update beat (producer only)
-  - Automatically filters out `licenseIds` field from input data
-  - Beat-license associations should be managed via dedicated license endpoints
-- `DELETE /api/beats/{id}`: Delete beat (producer only)
+- **GET /api/beats**: List all available beats
+- **GET /api/beats/:id**: Get a specific beat by ID
+- **POST /api/beats**: Create a new beat
+- **PATCH /api/beats/:id**: Update a beat
+- **DELETE /api/beats/:id**: Delete a beat
+- **GET /api/beats/:id/licenses**: Get licenses for a beat
+- **PUT /api/beats/:id/licenses**: Update licenses for a beat
+
+### Genres
+
+- **GET /api/genres**: List all genres (query param: activeOnly=true)
+- **POST /api/genres**: Create a new genre (admin only)
+- **GET /api/genres/:id**: Get a specific genre by ID
+- **PATCH /api/genres/:id**: Update a genre (admin only)
+- **DELETE /api/genres/:id**: Delete a genre (admin only, cannot delete genres in use)
 
 ### Licenses
 
-- `GET /api/licenses`: List licenses
-- `GET /api/beats/{beatId}/licenses`: Get licenses for a beat
-- `PATCH /api/beats/{beatId}/licenses`: Update licenses for a beat
-  - Accepts `licenseIds` array to associate licenses with the beat
+- **GET /api/licenses**: List all licenses
+- **GET /api/licenses/:id**: Get a specific license
+- **POST /api/licenses**: Create a new license
+- **PATCH /api/licenses/:id**: Update a license
+- **DELETE /api/licenses/:id**: Delete a license
+- **POST /api/licenses/:id/duplicate**: Duplicate a license
+
+### License Types
+
+- **GET /api/license-types**: List all license types
+- **GET /api/license-types/:id**: Get a specific license type
+- **POST /api/license-types**: Create a new license type
+- **PATCH /api/license-types/:id**: Update a license type
+- **DELETE /api/license-types/:id**: Delete a license type
 
 ### Orders
 
-- `POST /api/orders`: Create new order
-- `GET /api/orders`: List user orders
-- `GET /api/orders/{id}`: Get order details
-
-### Media
-
-- `GET /api/media/[...path]`: Securely serve media files
-  - Requires authentication for private files
-  - Handles various media types (audio, images)
-  - Implements cache control and optimization
-  - Provides fallbacks for missing files
+- **GET /api/orders**: Get all orders for current user
+- **GET /api/orders/:id**: Get a specific order
+- **POST /api/orders**: Create a new order
+- **POST /api/webhooks/stripe**: Handle Stripe webhook events
 
 ## Environment Configuration
 
@@ -474,4 +510,4 @@ export async function YourRoute(
 
 ---
 
-Last Updated: 2024-07-12 
+Last Updated: 2025-03-26 
