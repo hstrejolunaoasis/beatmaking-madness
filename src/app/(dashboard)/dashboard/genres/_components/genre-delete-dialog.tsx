@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Icons } from "@/components/icons";
+import { Loader2 } from "lucide-react";
 
 interface GenreDeleteDialogProps {
   genre: GenreWithBeatsCount;
@@ -85,7 +85,7 @@ export function GenreDeleteDialog({
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {isDeleting && (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
             Delete
           </AlertDialogAction>

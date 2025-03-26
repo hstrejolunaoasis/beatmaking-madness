@@ -10,7 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Icons } from "@/components/icons";
+import { MoreHorizontalIcon, EditIcon, EyeOffIcon, EyeIcon, TrashIcon, Loader2 as LoaderIcon } from "lucide-react";
 import { GenreEditDialog } from "./genre-edit-dialog";
 import { GenreDeleteDialog } from "./genre-delete-dialog";
 import { toast } from "sonner";
@@ -63,7 +63,7 @@ export function GenreActions({ genre, onDelete, onUpdate }: GenreActionsProps) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon">
-            <Icons.moreHorizontal className="h-4 w-4" />
+            <MoreHorizontalIcon className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>
         </DropdownMenuTrigger>
@@ -73,7 +73,7 @@ export function GenreActions({ genre, onDelete, onUpdate }: GenreActionsProps) {
             onClick={() => setShowEditDialog(true)}
             disabled={isLoading}
           >
-            <Icons.edit className="mr-2 h-4 w-4" />
+            <EditIcon className="mr-2 h-4 w-4" />
             Edit
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -82,12 +82,12 @@ export function GenreActions({ genre, onDelete, onUpdate }: GenreActionsProps) {
           >
             {genre.active ? (
               <>
-                <Icons.eyeOff className="mr-2 h-4 w-4" />
+                <EyeOffIcon className="mr-2 h-4 w-4" />
                 Deactivate
               </>
             ) : (
               <>
-                <Icons.eye className="mr-2 h-4 w-4" />
+                <EyeIcon className="mr-2 h-4 w-4" />
                 Activate
               </>
             )}
@@ -97,7 +97,7 @@ export function GenreActions({ genre, onDelete, onUpdate }: GenreActionsProps) {
             disabled={isLoading || genre._count.beats > 0}
             className="text-destructive focus:text-destructive"
           >
-            <Icons.trash className="mr-2 h-4 w-4" />
+            <TrashIcon className="mr-2 h-4 w-4" />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Icons } from "@/components/icons";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50, "Name must be less than 50 characters"),
@@ -161,7 +161,7 @@ export function GenreEditDialog({
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && (
-                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Save Changes
               </Button>

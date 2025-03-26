@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Icons } from "@/components/icons";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
@@ -164,7 +164,7 @@ export function GenreCreateDialog({
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && (
-                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Create Genre
               </Button>
