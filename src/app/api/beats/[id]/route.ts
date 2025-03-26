@@ -1,6 +1,7 @@
 import { dbService } from "@/lib/services/db.service";
 import { jsonResponse, successResponse, errorResponse, handleApiError } from "@/lib/utils/api";
 import { NextRequest } from "next/server";
+import { db } from "@/lib/db";
 
 interface RouteParams {
   params: {
@@ -71,6 +72,28 @@ export async function PATCH(
         data.tags = data.tags.split(',').map((tag: string) => tag.trim());
       } else if (!Array.isArray(data.tags)) {
         data.tags = [];
+      }
+    }
+
+    // Verify the genre exists if genreId is being updated
+    if (data.genreId) {
+      const genre = await db.genre.findUnique({
+        where: { id: data.genreId }
+      });
+      
+      if (!genre) {
+        return jsonResponse(
+          { success: false, message: "Selected genre does not exist" },
+          400
+        );
+      }
+      
+      // Make sure it's an active genre
+      if (!genre.active) {
+        return jsonResponse(
+          { success: false, message: "Selected genre is inactive" },
+          400
+        );
       }
     }
 

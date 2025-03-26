@@ -1,6 +1,7 @@
 import { dbService } from "@/lib/services/db.service";
 import { jsonResponse, successResponse, handleApiError } from "@/lib/utils/api";
 import { NextRequest } from "next/server";
+import { db } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,8 +33,8 @@ export async function POST(request: NextRequest) {
     if (!Object.prototype.hasOwnProperty.call(requiredFields, "key")) {
       requiredFields["key"] = "Key";
     }
-    if (!Object.prototype.hasOwnProperty.call(requiredFields, "genre")) {
-      requiredFields["genre"] = "Genre";
+    if (!Object.prototype.hasOwnProperty.call(requiredFields, "genreId")) {
+      requiredFields["genreId"] = "Genre ID";
     }
     if (!Object.prototype.hasOwnProperty.call(requiredFields, "mood")) {
       requiredFields["mood"] = "Mood";
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     
     // Ensure all required fields from the schema are present with default values if needed
     if (!data.key) data.key = "C";
-    if (!data.genre) data.genre = "Other";
+    if (!data.genreId) data.genreId = "";
     if (!data.mood) data.mood = "Other";
     if (!data.description) data.description = "";
 
@@ -120,6 +121,33 @@ export async function POST(request: NextRequest) {
       console.log("Created default waveform URL:", data.waveformUrl);
     }
 
+    // Verify the genre exists
+    if (data.genreId) {
+      const genre = await db.genre.findUnique({
+        where: { id: data.genreId }
+      });
+      
+      if (!genre) {
+        return jsonResponse(
+          { success: false, message: "Selected genre does not exist" },
+          400
+        );
+      }
+      
+      // Make sure it's an active genre
+      if (!genre.active) {
+        return jsonResponse(
+          { success: false, message: "Selected genre is inactive" },
+          400
+        );
+      }
+    } else {
+      return jsonResponse(
+        { success: false, message: "Genre is required" },
+        400
+      );
+    }
+
     // Create prepared data object that matches the expected Beat model type
     const beatData = {
       title: data.title,
@@ -128,7 +156,7 @@ export async function POST(request: NextRequest) {
       bpm: data.bpm,
       key: data.key || "C",
       tags: Array.isArray(data.tags) ? data.tags : [],
-      genre: data.genre || "Other",
+      genreId: data.genreId,
       mood: data.mood || "Other",
       description: data.description || "",
       imageUrl: data.imageUrl,

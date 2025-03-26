@@ -168,6 +168,7 @@ export default async function DashboardPage() {
           <Link href="/dashboard/beats" className="text-sm font-medium hover:text-primary">My Beats</Link>
           <Link href="/dashboard/licenses" className="text-sm font-medium hover:text-primary">Licenses</Link>
           <Link href="/dashboard/license-types" className="text-sm font-medium hover:text-primary">License Types</Link>
+          <Link href="/dashboard/genres" className="text-sm font-medium hover:text-primary">Genres</Link>
           <Link href="/dashboard/upload" className="text-sm font-medium hover:text-primary">Upload</Link>
           <Link href="/dashboard/sales" className="text-sm font-medium hover:text-primary">Sales</Link>
         </nav>

@@ -38,7 +38,12 @@ export interface Beat {
   bpm: number;
   key: string;
   tags: string[];
-  genre: string;
+  genreId: string;
+  genre?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
   mood: string;
   imageUrl: string;
   audioUrl: string;

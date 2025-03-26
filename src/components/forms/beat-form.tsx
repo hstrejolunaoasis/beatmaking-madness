@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Genre } from "@/types/genre";
 
 const beatFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
@@ -35,7 +36,7 @@ const beatFormSchema = z.object({
   price: z.coerce.number().min(1, "Price must be at least $1"),
   bpm: z.coerce.number().min(40).max(300, "BPM must be between 40 and 300"),
   key: z.string().min(1, "Key is required"),
-  genre: z.string().min(1, "Genre is required"),
+  genreId: z.string().min(1, "Genre is required"),
   mood: z.string().min(1, "Mood is required"),
   description: z.string().optional(),
   tags: z.string().transform((val) => val.split(",").map((tag) => tag.trim())),
@@ -59,6 +60,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [licenses, setLicenses] = useState<any[]>([]);
+  const [genres, setGenres] = useState<Genre[]>([]);
   const [activeTab, setActiveTab] = useState("details");
   const router = useRouter();
 
@@ -85,6 +87,28 @@ export const BeatForm: React.FC<BeatFormProps> = ({
   }, []);
 
   useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        const response = await fetch("/api/genres?activeOnly=true");
+        if (!response.ok) {
+          throw new Error("Failed to fetch genres");
+        }
+        const genresData = await response.json();
+        setGenres(genresData);
+      } catch (error) {
+        console.error("Failed to fetch genres:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load genres. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchGenres();
+  }, []);
+
+  useEffect(() => {
     if (onLoadingChange) {
       onLoadingChange(loading);
     }
@@ -95,6 +119,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
     defaultValues: initialData
       ? {
           ...initialData,
+          genreId: initialData.genreId || "",
           tags: initialData.tags?.join(", ") || "",
           licenseIds: [], // We'll populate this below
         }
@@ -104,7 +129,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
           price: 29.99,
           bpm: 120,
           key: "",
-          genre: "",
+          genreId: "",
           mood: "",
           description: "",
           tags: "",
@@ -528,7 +553,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                 />
                 <FormField
                   control={form.control}
-                  name="genre"
+                  name="genreId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Genre</FormLabel>
@@ -536,16 +561,23 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                         <Select
                           value={field.value}
                           onValueChange={field.onChange}
+                          disabled={genres.length === 0}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select a genre" />
                           </SelectTrigger>
                           <SelectContent>
-                            {["Hip Hop", "R&B", "Pop", "Trap", "Drill", "Electronic", "Jazz", "Rock", "Dancehall", "Afrobeat"].map((genre) => (
-                              <SelectItem key={genre} value={genre}>
-                                {genre}
+                            {genres.length === 0 ? (
+                              <SelectItem value="loading" disabled>
+                                Loading genres...
                               </SelectItem>
-                            ))}
+                            ) : (
+                              genres.map((genre) => (
+                                <SelectItem key={genre.id} value={genre.id}>
+                                  {genre.name}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                       </FormControl>

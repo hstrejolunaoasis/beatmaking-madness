@@ -27,7 +27,8 @@ model Beat {
   bpm         Int
   key         String
   tags        String[]
-  genre       String
+  genreId     String
+  genre       Genre       @relation(fields: [genreId], references: [id])
   mood        String
   description String      @default("")
   imageUrl    String
@@ -99,6 +100,17 @@ model BeatLicense {
   license   License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
 
   @@unique([beatId, licenseId])
+}
+
+model Genre {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  active      Boolean  @default(true)
+  beats       Beat[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 enum Role {

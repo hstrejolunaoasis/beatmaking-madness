@@ -1,4 +1,5 @@
 import { BEAT_LICENSES } from "@/lib/config/constants";
+import { Genre } from "./genre";
 
 export type Beat = {
   id: string;
@@ -8,7 +9,8 @@ export type Beat = {
   bpm: number;
   key: string;
   tags: string[];
-  genre: string;
+  genreId: string;
+  genre?: Genre;
   mood: string;
   imageUrl: string;
   audioUrl: string;
