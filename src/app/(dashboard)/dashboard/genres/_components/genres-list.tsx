@@ -109,7 +109,7 @@ export function GenresList({ initialGenres }: GenresListProps) {
                       {genre.active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{genre._count.beats}</TableCell>
+                  <TableCell>{genre._count?.beats || 0}</TableCell>
                   <TableCell>
                     {format(new Date(genre.createdAt), "MMM d, yyyy")}
                   </TableCell>

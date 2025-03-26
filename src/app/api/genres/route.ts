@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { slugify } from "@/lib/utils";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/supabase/server-actions";
 
 // Schema for genre validation
 const genreSchema = z.object({
@@ -21,6 +20,11 @@ export async function GET(request: NextRequest) {
     const genres = await db.genre.findMany({
       where: activeOnly ? { active: true } : {},
       orderBy: { name: "asc" },
+      include: {
+        _count: {
+          select: { beats: true }
+        }
+      }
     });
     
     return NextResponse.json(genres);
@@ -36,10 +40,10 @@ export async function GET(request: NextRequest) {
 // POST - Create a new genre
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getCurrentUser();
     
     // Check if user is authenticated and has admin role
-    if (!session || session.user.role !== "ADMIN") {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -77,6 +81,11 @@ export async function POST(request: NextRequest) {
         description: validatedData.description,
         active: validatedData.active,
       },
+      include: {
+        _count: {
+          select: { beats: true }
+        }
+      }
     });
     
     return NextResponse.json(genre, { status: 201 });

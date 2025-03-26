@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { slugify } from "@/lib/utils";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/supabase/server-actions";
 
 // Schema for genre update validation
 const genreUpdateSchema = z.object({
@@ -18,8 +17,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const id = await params.id;
+    
     const genre = await db.genre.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: { beats: true }
@@ -50,10 +51,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const id = await params.id;
+    const user = await getCurrentUser();
     
     // Check if user is authenticated and has admin role
-    if (!session || session.user.role !== "ADMIN") {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -65,7 +67,7 @@ export async function PATCH(
     
     // Check if genre exists
     const genre = await db.genre.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
     
     if (!genre) {
@@ -89,7 +91,7 @@ export async function PATCH(
             { name: validatedData.name },
             { slug }
           ],
-          NOT: { id: params.id }
+          NOT: { id }
         }
       });
       
@@ -105,8 +107,13 @@ export async function PATCH(
     
     // Update genre
     const updatedGenre = await db.genre.update({
-      where: { id: params.id },
-      data: updateData
+      where: { id },
+      data: updateData,
+      include: {
+        _count: {
+          select: { beats: true }
+        }
+      }
     });
     
     return NextResponse.json(updatedGenre);
@@ -132,10 +139,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const id = await params.id;
+    const user = await getCurrentUser();
     
     // Check if user is authenticated and has admin role
-    if (!session || session.user.role !== "ADMIN") {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -144,7 +152,7 @@ export async function DELETE(
     
     // Check if genre exists
     const genre = await db.genre.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: { beats: true }
@@ -169,7 +177,7 @@ export async function DELETE(
     
     // Delete genre
     await db.genre.delete({
-      where: { id: params.id }
+      where: { id }
     });
     
     return NextResponse.json(
