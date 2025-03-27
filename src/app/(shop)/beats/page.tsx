@@ -4,7 +4,7 @@ import { useApi } from "@/lib/hooks/useApi";
 import { Beat } from "@/types";
 import { BeatCard } from "@/components/common/BeatCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AudioPlayer } from "@/components/common/AudioPlayer";
 import { 
   Card,
@@ -78,6 +78,32 @@ export default function BeatsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentBeat, setCurrentBeat] = useState<Beat | null>(null);
   const [filteredBeats, setFilteredBeats] = useState<Beat[]>([]);
+  
+  // Calculate beat data statistics
+  const calculateMinBpm = (beats: Beat[] | undefined) => {
+    if (!beats || beats.length === 0) return 0;
+    return Math.min(...beats.map(beat => beat.bpm));
+  };
+  
+  const calculateMaxBpm = (beats: Beat[] | undefined) => {
+    if (!beats || beats.length === 0) return 300;
+    return Math.max(...beats.map(beat => beat.bpm));
+  };
+  
+  const calculateMaxPrice = (beats: Beat[] | undefined) => {
+    if (!beats || beats.length === 0) return 1000;
+    return Math.max(...beats.map(beat => beat.price));
+  };
+  
+  // Calculate once when beats data is available
+  const minBpm = calculateMinBpm(beats);
+  const maxBpm = calculateMaxBpm(beats);
+  const maxPrice = calculateMaxPrice(beats);
+  
+  // Track if we've initialized filters
+  const initializedRef = useRef(false);
+  
+  // Initialize filters with ref to avoid re-renders
   const [activeFilters, setActiveFilters] = useState<{
     genres: string[],
     moods: string[],
@@ -93,22 +119,25 @@ export default function BeatsPage() {
   });
   
   // Extract unique genres and moods from beats
-  const allGenres = beats ? [...new Set(beats.map(beat => beat.genre?.name || ''))] : [];
-  const allMoods = beats ? [...new Set(beats.map(beat => beat.mood))] : [];
+  const allGenres = beats ? [...new Set(beats.map(beat => beat.genre?.name || '').filter(Boolean))] : [];
+  const allMoods = beats ? [...new Set(beats.map(beat => beat.mood).filter(Boolean))] : [];
   
-  // Find min/max BPM and prices
-  const minBpm = beats ? Math.min(...beats.map(beat => beat.bpm)) : 0;
-  const maxBpm = beats ? Math.max(...beats.map(beat => beat.bpm)) : 300;
-  
+  // Initialize filter ranges once when beats data is loaded
   useEffect(() => {
-    if (!beats) return;
+    if (!beats || initializedRef.current) return;
     
-    // Initialize filter ranges based on available data
     setActiveFilters(prev => ({
       ...prev,
       bpmRange: [minBpm, maxBpm],
-      priceRange: [0, Math.max(...beats.map(beat => beat.price))]
+      priceRange: [0, maxPrice]
     }));
+    
+    initializedRef.current = true;
+  }, [beats, minBpm, maxBpm, maxPrice]);
+  
+  // Apply filters to beats
+  useEffect(() => {
+    if (!beats) return;
     
     let filtered = [...beats];
     
@@ -149,31 +178,33 @@ export default function BeatsPage() {
     );
     
     // Apply sorting
+    const sortedFiltered = [...filtered];
+    
     switch (activeFilters.sortBy) {
       case "newest":
-        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        sortedFiltered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         break;
       case "oldest":
-        filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        sortedFiltered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         break;
       case "price-low":
-        filtered.sort((a, b) => a.price - b.price);
+        sortedFiltered.sort((a, b) => a.price - b.price);
         break;
       case "price-high":
-        filtered.sort((a, b) => b.price - a.price);
+        sortedFiltered.sort((a, b) => b.price - a.price);
         break;
       case "title-asc":
-        filtered.sort((a, b) => a.title.localeCompare(b.title));
+        sortedFiltered.sort((a, b) => a.title.localeCompare(b.title));
         break;
       case "title-desc":
-        filtered.sort((a, b) => b.title.localeCompare(a.title));
+        sortedFiltered.sort((a, b) => b.title.localeCompare(a.title));
         break;
       default:
         break;
     }
     
-    setFilteredBeats(filtered);
-  }, [beats, searchQuery, activeFilters, minBpm, maxBpm]);
+    setFilteredBeats(sortedFiltered);
+  }, [beats, searchQuery, activeFilters]);
   
   const handlePlayBeat = (beat: Beat) => {
     setCurrentBeat(beat);
@@ -216,7 +247,7 @@ export default function BeatsPage() {
       genres: [],
       moods: [],
       bpmRange: [minBpm, maxBpm],
-      priceRange: [0, beats ? Math.max(...beats.map(beat => beat.price)) : 1000],
+      priceRange: [0, maxPrice],
       sortBy: "newest"
     });
     setSearchQuery("");
@@ -228,7 +259,7 @@ export default function BeatsPage() {
     activeFilters.bpmRange[0] > minBpm || 
     activeFilters.bpmRange[1] < maxBpm || 
     activeFilters.priceRange[0] > 0 ||
-    activeFilters.priceRange[1] < (beats ? Math.max(...beats.map(beat => beat.price)) : 1000) ||
+    activeFilters.priceRange[1] < maxPrice ||
     searchQuery.length > 0;
 
   return (
@@ -320,8 +351,8 @@ export default function BeatsPage() {
                         </span>
                       </div>
                       <Slider 
-                        min={minBpm} 
-                        max={maxBpm} 
+                        min={minBpm !== Infinity ? minBpm : 0} 
+                        max={maxBpm !== -Infinity ? maxBpm : 300} 
                         step={1}
                         value={[activeFilters.bpmRange[0], activeFilters.bpmRange[1]]}
                         onValueChange={(value) => setActiveFilters(prev => ({
@@ -340,7 +371,7 @@ export default function BeatsPage() {
                       </div>
                       <Slider 
                         min={0} 
-                        max={beats ? Math.max(...beats.map(beat => beat.price)) : 1000} 
+                        max={maxPrice !== -Infinity ? maxPrice : 1000} 
                         step={1}
                         value={[activeFilters.priceRange[0], activeFilters.priceRange[1]]}
                         onValueChange={(value) => setActiveFilters(prev => ({
@@ -448,7 +479,7 @@ export default function BeatsPage() {
               </Badge>
             )}
             
-            {(activeFilters.priceRange[0] > 0 || activeFilters.priceRange[1] < (beats ? Math.max(...beats.map(beat => beat.price)) : 1000)) && (
+            {(activeFilters.priceRange[0] > 0 || activeFilters.priceRange[1] < maxPrice) && (
               <Badge variant="secondary">
                 Price: ${activeFilters.priceRange[0]} - ${activeFilters.priceRange[1]}
               </Badge>
