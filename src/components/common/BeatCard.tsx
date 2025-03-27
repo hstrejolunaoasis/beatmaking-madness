@@ -8,9 +8,9 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
 import { useCartStore } from "@/lib/store/cart";
 import { BEAT_LICENSES } from "@/lib/config/constants";
+import { getSecureMediaUrl } from "@/lib/utils/media";
 
 interface BeatCardProps {
   beat: Beat;
@@ -31,12 +31,13 @@ export function BeatCard({ beat }: BeatCardProps) {
     <Card className="overflow-hidden transition-all hover:shadow-md">
       <div className="relative h-48 bg-muted">
         {beat.imageUrl ? (
-          <Image
-            src={beat.imageUrl}
-            alt={beat.title}
-            fill
-            className="object-cover"
-          />
+          <div className="h-full w-full relative">
+            <img
+              src={getSecureMediaUrl(beat.imageUrl)}
+              alt={beat.title}
+              className="object-cover absolute inset-0 w-full h-full"
+            />
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full bg-gradient-to-r from-purple-400 to-indigo-500">
             <span className="text-2xl font-bold text-white">{beat.title}</span>

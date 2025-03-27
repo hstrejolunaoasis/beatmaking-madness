@@ -4,7 +4,8 @@ const nextConfig: NextConfig = {
   images: {
     domains: [
       'images.unsplash.com', 
-      'randomuser.me'
+      'randomuser.me',
+      'jcjjsctsfzwwjcohvahe.supabase.co'
     ],
   },
   /* config options here */
