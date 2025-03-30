@@ -6,16 +6,29 @@
 export function getSecureMediaUrl(path: string): string {
   if (!path) return '';
   
+  // Generate a stable identifier based on the path itself
+  // This ensures the same file always gets the same URL to prevent play interruptions
+  const generateStableId = (str: string) => {
+    // Simple hash function to generate a number from a string
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+  };
+  
+  const stableId = generateStableId(path);
+  
   // If it's already using our secure API endpoint, return as is
   if (path.startsWith('/api/media/')) {
     // If URL already has a timestamp or retry param, return it unchanged
     if (path.includes('t=') || path.includes('retry=')) {
       return path;
     }
-    // Use a stable timestamp based on the path itself to prevent frequent reloads
-    // This ensures the same audio file gets the same URL during a session
-    const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
-    return `${path}${path.includes('?') ? '&' : '?'}t=${stableTimestamp}`;
+    // Use a stable identifier based on the path itself instead of a timestamp
+    return `${path}${path.includes('?') ? '&' : '?'}t=${stableId}`;
   }
   
   // Extract the path from a Supabase URL
@@ -29,13 +42,11 @@ export function getSecureMediaUrl(path: string): string {
       const privateParts = storagePath.split('private/');
       if (privateParts.length > 1) {
         // Our API will add 'private/' prefix, so just use what comes after it
-        const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
-        return `/api/media/${privateParts[1]}?t=${stableTimestamp}`;
+        return `/api/media/${privateParts[1]}?t=${stableId}`;
       }
     }
     
-    const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
-    return `/api/media/${storagePath}?t=${stableTimestamp}`;
+    return `/api/media/${storagePath}?t=${stableId}`;
   }
   
   // If it's a relative path without the Supabase URL structure, use it directly
@@ -46,17 +57,14 @@ export function getSecureMediaUrl(path: string): string {
       const privateParts = path.split('private/');
       if (privateParts.length > 1) {
         // Our API will add 'private/' prefix, so just use what comes after it
-        const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
-        return `/api/media/${privateParts[1]}?t=${stableTimestamp}`;
+        return `/api/media/${privateParts[1]}?t=${stableId}`;
       }
     }
     
     // For paths without 'private/', pass as is - the API will add the prefix
-    const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
-    return `/api/media/${path}?t=${stableTimestamp}`;
+    return `/api/media/${path}?t=${stableId}`;
   }
   
-  // Otherwise, return the original URL with a timestamp
-  const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
-  return `${path}${path.includes('?') ? '&' : '?'}t=${stableTimestamp}`;
+  // Otherwise, return the original URL with a stable identifier
+  return `${path}${path.includes('?') ? '&' : '?'}t=${stableId}`;
 } 

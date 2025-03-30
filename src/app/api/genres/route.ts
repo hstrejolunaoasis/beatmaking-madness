@@ -14,7 +14,8 @@ const genreSchema = z.object({
 // GET - Fetch all genres
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const url = new URL(request.url);
+    const searchParams = await url.searchParams;
     const activeOnly = searchParams.get("activeOnly") === "true";
     
     const genres = await db.genre.findMany({

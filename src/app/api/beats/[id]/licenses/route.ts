@@ -7,13 +7,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { id } = await params;
     // Ensure beat exists
-    const beat = await dbService.getBeat(params.id);
+    const beat = await dbService.getBeat(id);
     if (!beat) {
       return jsonResponse({ success: false, message: "Beat not found" }, 404);
     }
 
-    const licenses = await dbService.getBeatLicenses(params.id);
+    const licenses = await dbService.getBeatLicenses(id);
     return jsonResponse(successResponse(licenses));
   } catch (error) {
     return handleApiError(error);
@@ -26,6 +27,7 @@ export async function PUT(
 ) {
   try {
     const { licenseIds } = await request.json();
+    const { id } = await params;
 
     if (!Array.isArray(licenseIds)) {
       return jsonResponse(
@@ -35,12 +37,12 @@ export async function PUT(
     }
 
     // Ensure beat exists
-    const beat = await dbService.getBeat(params.id);
+    const beat = await dbService.getBeat(id);
     if (!beat) {
       return jsonResponse({ success: false, message: "Beat not found" }, 404);
     }
 
-    await dbService.updateBeatLicenses(params.id, licenseIds);
+    await dbService.updateBeatLicenses(id, licenseIds);
     return jsonResponse(
       successResponse(null, "Beat licenses updated successfully")
     );

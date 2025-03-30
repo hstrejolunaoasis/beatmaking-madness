@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { BeatPlayer } from "@/components/common/BeatPlayer";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ function BeatDetailSkeleton() {
 
 export default function BeatDetailPage() {
   const params = useParams();
+  const { id } = React.use(params);
   const [beat, setBeat] = useState<Beat | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +48,7 @@ export default function BeatDetailPage() {
     async function fetchBeat() {
       try {
         setLoading(true);
-        const response = await fetch(`/api/beats/${params.id}`);
+        const response = await fetch(`/api/beats/${id}`);
         const result = await response.json();
 
         if (!response.ok || !result.success) {
@@ -63,10 +64,10 @@ export default function BeatDetailPage() {
       }
     }
 
-    if (params.id) {
+    if (id) {
       fetchBeat();
     }
-  }, [params.id]);
+  }, [id]);
 
   const handleAddToCart = (licenseType: LicenseType) => {
     if (!beat) return;

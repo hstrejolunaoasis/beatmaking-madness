@@ -673,29 +673,36 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                                 const audio = document.getElementById('current-audio') as HTMLAudioElement;
                                 if (audio) {
                                   if (audio.paused) {
-                                    audio.play().catch(err => {
-                                      console.error("Error playing audio:", err);
-                                      
-                                      // If interrupted error, try again once
-                                      if (err.name === "AbortError" || String(err).includes("interrupted")) {
-                                        setTimeout(() => {
-                                          audio.play().catch(retryErr => {
-                                            console.error("Retry failed:", retryErr);
-                                            toast({
-                                              title: "Playback error",
-                                              description: "Could not play the audio file. Please try again.",
-                                              variant: "destructive",
+                                    // Store the play promise and handle it properly
+                                    const playPromise = audio.play();
+                                    
+                                    if (playPromise !== undefined) {
+                                      playPromise.then(() => {
+                                        // Playback started successfully
+                                      }).catch(err => {
+                                        console.error("Error playing audio:", err);
+                                        
+                                        // If interrupted error, try again once
+                                        if (err.name === "AbortError" || String(err).includes("interrupted")) {
+                                          setTimeout(() => {
+                                            audio.play().catch(retryErr => {
+                                              console.error("Retry failed:", retryErr);
+                                              toast({
+                                                title: "Playback error",
+                                                description: "Could not play the audio file. Please try again.",
+                                                variant: "destructive",
+                                              });
                                             });
+                                          }, 500);
+                                        } else {
+                                          toast({
+                                            title: "Playback error",
+                                            description: "Could not play the audio file. Please try again.",
+                                            variant: "destructive",
                                           });
-                                        }, 500);
-                                      } else {
-                                        toast({
-                                          title: "Playback error",
-                                          description: "Could not play the audio file. Please try again.",
-                                          variant: "destructive",
-                                        });
-                                      }
-                                    });
+                                        }
+                                      });
+                                    }
                                   } else {
                                     audio.pause();
                                   }

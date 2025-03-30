@@ -13,14 +13,16 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    if (!params.licenseId) {
+    const { licenseId } = await params;
+    
+    if (!licenseId) {
       return new NextResponse("License ID is required", { status: 400 });
     }
     
     // Find the original license
     const originalLicense = await db.license.findUnique({
       where: {
-        id: params.licenseId,
+        id: licenseId,
       },
       include: {
         licenseType: true,

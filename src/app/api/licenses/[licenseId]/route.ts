@@ -13,13 +13,15 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    if (!params.licenseId) {
+    const { licenseId } = await params;
+    
+    if (!licenseId) {
       return new NextResponse("License ID is required", { status: 400 });
     }
     
     const license = await db.license.findUnique({
       where: {
-        id: params.licenseId,
+        id: licenseId,
       },
       include: {
         licenseType: true,
@@ -48,7 +50,9 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    if (!params.licenseId) {
+    const { licenseId } = await params;
+    
+    if (!licenseId) {
       return new NextResponse("License ID is required", { status: 400 });
     }
     
@@ -71,7 +75,7 @@ export async function PATCH(
     
     const license = await db.license.update({
       where: {
-        id: params.licenseId,
+        id: licenseId,
       },
       data: {
         name,
@@ -104,13 +108,15 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    if (!params.licenseId) {
+    const { licenseId } = await params;
+    
+    if (!licenseId) {
       return new NextResponse("License ID is required", { status: 400 });
     }
     
     await db.license.delete({
       where: {
-        id: params.licenseId,
+        id: licenseId,
       },
     });
     

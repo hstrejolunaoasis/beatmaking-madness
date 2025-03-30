@@ -11,7 +11,7 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const beat = await dbService.getBeat(id);
 
     if (!beat) {
@@ -33,7 +33,8 @@ export async function PATCH(
 ) {
   try {
     const data = await request.json();
-    console.log("Updating beat:", params.id);
+    const { id } = await params;
+    console.log("Updating beat:", id);
     console.log("Update data:", JSON.stringify(data, null, 2));
 
     // Validate the beat data with more detailed errors
@@ -98,13 +99,13 @@ export async function PATCH(
     }
 
     // Ensure beat exists
-    const existingBeat = await dbService.getBeat(params.id);
+    const existingBeat = await dbService.getBeat(id);
     if (!existingBeat) {
       return jsonResponse({ success: false, message: "Beat not found" }, 404);
     }
 
     console.log("Updating beat in database");
-    const beat = await dbService.updateBeat(params.id, data);
+    const beat = await dbService.updateBeat(id, data);
     console.log("Beat updated successfully");
     
     return jsonResponse(successResponse(beat, "Beat updated successfully"));
@@ -119,13 +120,14 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { id } = await params;
     // Ensure beat exists
-    const existingBeat = await dbService.getBeat(params.id);
+    const existingBeat = await dbService.getBeat(id);
     if (!existingBeat) {
       return jsonResponse({ success: false, message: "Beat not found" }, 404);
     }
 
-    await dbService.deleteBeat(params.id);
+    await dbService.deleteBeat(id);
     return jsonResponse(successResponse(null, "Beat deleted successfully"));
   } catch (error) {
     return handleApiError(error);

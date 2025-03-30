@@ -7,9 +7,11 @@ export async function GET(
   { params }: { params: { licenseTypeId: string } }
 ) {
   try {
+    const { licenseTypeId } = await params;
+    
     const licenseType = await db.licenseType.findUnique({
       where: {
-        id: params.licenseTypeId,
+        id: licenseTypeId,
       },
     });
     
@@ -35,6 +37,7 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
+    const { licenseTypeId } = await params;
     const body = await req.json();
     
     const { name, slug, description } = body;
@@ -46,7 +49,7 @@ export async function PATCH(
     // Check if the license type exists
     const existingLicenseType = await db.licenseType.findUnique({
       where: {
-        id: params.licenseTypeId,
+        id: licenseTypeId,
       },
     });
     
@@ -66,7 +69,7 @@ export async function PATCH(
           },
           {
             NOT: {
-              id: params.licenseTypeId,
+              id: licenseTypeId,
             },
           },
         ],
@@ -79,7 +82,7 @@ export async function PATCH(
     
     const licenseType = await db.licenseType.update({
       where: {
-        id: params.licenseTypeId,
+        id: licenseTypeId,
       },
       data: {
         name,
@@ -106,10 +109,12 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
+    const { licenseTypeId } = await params;
+    
     // Check if the license type is being used by any licenses
     const licensesUsingType = await db.license.findFirst({
       where: {
-        licenseTypeId: params.licenseTypeId,
+        licenseTypeId: licenseTypeId,
       },
     });
     
@@ -123,7 +128,7 @@ export async function DELETE(
     // Check if the license type is being used by any order items
     const orderItemsUsingType = await db.orderItem.findFirst({
       where: {
-        licenseTypeId: params.licenseTypeId,
+        licenseTypeId: licenseTypeId,
       },
     });
     
@@ -136,7 +141,7 @@ export async function DELETE(
     
     await db.licenseType.delete({
       where: {
-        id: params.licenseTypeId,
+        id: licenseTypeId,
       },
     });
     

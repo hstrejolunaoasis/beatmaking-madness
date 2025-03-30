@@ -1,4 +1,4 @@
-# Beatmaking Madness - Project Documentation
+j# Beatmaking Madness - Project Documentation
 
 ## Table of Contents
 1. [Project Overview](#project-overview)

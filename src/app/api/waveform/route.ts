@@ -3,7 +3,8 @@ import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const url = new URL(request.url);
+    const searchParams = await url.searchParams;
     const path = searchParams.get('path');
     
     if (!path) {

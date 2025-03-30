@@ -13,10 +13,13 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const playPromiseRef = useRef<Promise<void> | undefined>(undefined);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+
+    audio.load();
 
     const updateProgress = () => {
       if (audio.duration) {
@@ -45,12 +48,24 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
     audio.addEventListener("error", handleError as EventListener);
 
     return () => {
+      if (playPromiseRef.current !== undefined) {
+        playPromiseRef.current
+          .then(() => {
+            audio.pause();
+          })
+          .catch(() => {
+            // Play was already interrupted or failed, no need to pause
+          });
+      } else {
+        audio.pause();
+      }
+
       audio.removeEventListener("timeupdate", updateProgress);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("error", handleError as EventListener);
     };
-  }, [audioRef]);
+  }, [audioRef, audioUrl]);
 
   const togglePlayPause = () => {
     const audio = audioRef.current;
@@ -59,22 +74,37 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
+      playPromiseRef.current = undefined;
     } else {
-      audio.play().then(() => {
-        setIsPlaying(true);
-      }).catch(error => {
-        console.error("Error playing audio:", error);
-        
-        if (error.name === "AbortError" || String(error).includes("interrupted")) {
-          setTimeout(() => {
-            if (audioRef.current) {
-              audioRef.current.play()
-                .then(() => setIsPlaying(true))
-                .catch(e => console.error("Retry failed:", e));
+      playPromiseRef.current = audio.play();
+      
+      if (playPromiseRef.current !== undefined) {
+        playPromiseRef.current
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch(error => {
+            console.error("Error playing audio:", error);
+            setIsPlaying(false);
+            playPromiseRef.current = undefined;
+            
+            if (error.name === "AbortError" || String(error).includes("interrupted")) {
+              setTimeout(() => {
+                if (audioRef.current) {
+                  const retryPromise = audioRef.current.play();
+                  playPromiseRef.current = retryPromise;
+                  
+                  retryPromise
+                    .then(() => setIsPlaying(true))
+                    .catch(e => {
+                      console.error("Retry failed:", e);
+                      playPromiseRef.current = undefined;
+                    });
+                }
+              }, 300);
             }
-          }, 300);
-        }
-      });
+          });
+      }
     }
   };
 

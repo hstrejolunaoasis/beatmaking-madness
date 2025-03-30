@@ -53,30 +53,50 @@ export function AudioPlayer({
     if (!audioRef.current || !currentBeat) return;
     
     const audioEl = audioRef.current;
+    let playPromise: Promise<void> | undefined;
     
     // Set loading state to prevent multiple play attempts
     setIsPlaying(false);
     
     // Store the URL before setting it to prevent race conditions
     const mediaUrl = getSecureMediaUrl(currentBeat.audioUrl);
+    
+    // Before changing the src, ensure any ongoing play operation is complete
+    if (audioEl.src) {
+      // Properly pause before changing source
+      audioEl.pause();
+    }
+    
+    // Now it's safe to change the source
     audioEl.src = mediaUrl;
     audioEl.volume = isMuted ? 0 : volume;
+    audioEl.load(); // Explicitly load the audio
     
     // Use a small delay to let the browser process the new source
     const playTimer = setTimeout(() => {
-      audioEl.play().then(() => {
-        setIsPlaying(true);
-      }).catch(error => {
-        console.error("Error playing audio:", error);
-        // If we get the interrupted error, try again once after a short delay
-        if (error.name === "AbortError" || String(error).includes("interrupted")) {
-          setTimeout(() => {
-            audioEl.play()
-              .then(() => setIsPlaying(true))
-              .catch(e => console.error("Retry failed:", e));
-          }, 500);
-        }
-      });
+      // Store the play promise so we can check its state before interrupting
+      playPromise = audioEl.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch(error => {
+            console.error("Error playing audio:", error);
+            // Autoplay was prevented or another error occurred
+            setIsPlaying(false);
+            
+            // If we get the interrupted error, try again once after a short delay
+            if (error.name === "AbortError" || String(error).includes("interrupted")) {
+              setTimeout(() => {
+                audioEl.play()
+                  .then(() => setIsPlaying(true))
+                  .catch(e => console.error("Retry failed:", e));
+              }, 500);
+            }
+          });
+      }
     }, 100);
     
     // Event listeners
@@ -104,7 +124,23 @@ export function AudioPlayer({
     audioEl.addEventListener('ended', handleEnded);
     
     return () => {
+      // Clean up properly - make sure we don't interrupt ongoing play operation
       clearTimeout(playTimer);
+      
+      // Only call pause if the play promise is fulfilled
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            audioEl.pause();
+          })
+          .catch(() => {
+            // Play was already interrupted or failed, no need to pause
+          });
+      } else {
+        // No play in progress, safe to pause
+        audioEl.pause();
+      }
+      
       audioEl.removeEventListener('timeupdate', handleTimeUpdate);
       audioEl.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audioEl.removeEventListener('ended', handleEnded);
@@ -121,25 +157,36 @@ export function AudioPlayer({
   const handlePlayPause = () => {
     if (!audioRef.current || !currentBeat) return;
     
+    const audio = audioRef.current;
+    
     if (isPlaying) {
-      audioRef.current.pause();
+      audio.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch(error => {
-        console.error("Play error:", error);
-        // If we get the interrupted error, try again once
-        if (error.name === "AbortError" || String(error).includes("interrupted")) {
-          setTimeout(() => {
-            if (audioRef.current) {
-              audioRef.current.play()
-                .then(() => setIsPlaying(true))
-                .catch(e => console.error("Retry failed:", e));
+      // Store the play promise and handle it properly
+      const playPromise = audio.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch(error => {
+            console.error("Play error:", error);
+            setIsPlaying(false);
+            
+            // If we get the interrupted error, try again once
+            if (error.name === "AbortError" || String(error).includes("interrupted")) {
+              setTimeout(() => {
+                if (audioRef.current) {
+                  audioRef.current.play()
+                    .then(() => setIsPlaying(true))
+                    .catch(e => console.error("Retry failed:", e));
+                }
+              }, 500);
             }
-          }, 500);
-        }
-      });
+          });
+      }
     }
   };
 
