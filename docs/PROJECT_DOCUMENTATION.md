@@ -1,4 +1,4 @@
-j# Beatmaking Madness - Project Documentation
+# Beatmaking Madness - Project Documentation
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
@@ -22,7 +22,7 @@ j# Beatmaking Madness - Project Documentation
 
 Beatmaking Madness is a professional e-commerce platform that connects music producers with artists. The platform enables producers to upload, manage, and sell beats with multiple licensing options while providing artists with an interface to browse, preview, and purchase beats.
 
-**Current Version:** 0.1.0
+**Current Version:** 0.2.0
 
 **Target Audience:**
 - Music producers looking to sell beats online
@@ -280,6 +280,7 @@ The system uses a custom media API to serve protected files from Supabase Storag
   - Requires authentication for private files
   - Implements proper MIME types and cache headers
   - Handles waveform placeholders and fallbacks
+  - Properly awaits dynamic route parameters
 
 - **Media Utilities:**
   - `getSecureMediaUrl()`: Converts storage URLs to secure API URLs
@@ -290,6 +291,7 @@ The system uses a custom media API to serve protected files from Supabase Storag
   - Error handling with retry mechanisms
   - Custom audio player with playback controls
   - Lazy loading of media files for improved performance
+  - Proper handling of dynamic route params with React.use()
 
 ### Optimizations
 
@@ -416,7 +418,7 @@ STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
 **Current Status:** Development
 
 **Key Metrics:**
-- Version: 0.1.0
+- Version: 0.2.0
 - Features Implemented: 70%
 - Test Coverage: 60%
 - Known Issues: 5
@@ -479,6 +481,7 @@ Next.js 15 requires proper handling of asynchronous APIs:
   - Always await cookies(), headers(), and other Next.js APIs before accessing properties
   - Properly await params in dynamic routes
   - Use async versions of runtime APIs
+  - Make cookie handler functions asynchronous in createServerClient
 
 ```typescript
 // Correct async API usage
@@ -494,12 +497,46 @@ export async function YourRoute(
   const slug = await params.slug;
   // Rest of the code
 }
+
+// Correct cookie handling in createServerClient
+const supabase = createServerClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    cookies: {
+      async get(name: string) {
+        const cookie = await cookieStore.get(name);
+        return cookie?.value;
+      },
+      // Other cookie handlers...
+    },
+  }
+);
+
+// Correct params handling in client components
+const params = useParams();
+const { id } = React.use(params);
 ```
 
 - **Async Components:**
   - Use async/await in Server Components
   - Implement proper suspense boundaries for async operations
   - Handle loading states appropriately
+  - Use React.use() for unwrapping promises in client components
+
+### Dynamic API Compatibility 
+
+- **URL Search Params:**
+  - Always await URL searchParams access: `const params = await url.searchParams`
+  - Access properties after awaiting: `const value = params.get('key')`
+
+- **Middleware Considerations:**
+  - Use async cookie handlers in middleware
+  - Properly await any dynamic API calls
+
+- **Authentication Flows:**
+  - Ensure all auth-related code properly awaits cookies and other APIs
+  - Use consistent patterns for cookie access across the application
 
 ### Optimization Techniques
 
@@ -510,4 +547,4 @@ export async function YourRoute(
 
 ---
 
-Last Updated: 2025-03-26 
+Last Updated: 2024-04-20 
