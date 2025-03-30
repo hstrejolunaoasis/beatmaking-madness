@@ -1,0 +1,60 @@
+---
+description: Always use this rule when debugging or fixing issues to ensure thorough validation and prevent premature claims of success
+globs: 
+alwaysApply: false
+---
+
+# Comprehensive Issue Fixing and Validation
+
+## Context
+
+- Added after experiencing issues with audio playback path duplication that wasn't properly fixed on first attempt
+- Ensures rigorous validation before claiming an issue is fixed
+- Prevents wasted time from false assumptions about fixes working when they don't
+
+## Critical Rules
+
+- Never assume a fix will work without concrete evidence or validation
+- Always dig deeper into the issue root cause through code inspection and logs
+- Implement complete end-to-end validation plans before claiming victory
+- Follow a structured debugging approach:
+  1. Identify all relevant code touchpoints affecting the issue
+  2. Analyze data flow through the system to find inconsistencies
+  3. Create a step-by-step verification plan with expected outcomes
+  4. Consider edge cases and potential regression impacts
+  5. Execute validation tests before claiming success
+- Always provide specific git commit commands after implementing fixes
+- Include helpful documentation updates when appropriate
+- Add detailed comments explaining fixes for future reference
+- Suggest monitoring or logging enhancements to detect similar issues
+- Use console.log strategically to verify assumptions about data flow
+- Propose test cases that would prevent similar issues in the future
+
+## Examples
+
+<example>
+**Issue**: Audio playback failing with 404 errors due to path duplication
+
+**Approach**:
+1. Examine all code handling path construction
+2. Run grep to find all occurrences of 'private/' prefix
+3. Check how paths propagate through components
+4. Add logging to see actual path values at runtime
+5. Fix all locations where paths are processed
+6. Create test paths to validate different scenarios
+7. Suggest commit: `git commit -m "fix: resolve audio playback path duplication issue by improving private/ prefix handling"`
+
+**Documentation**: "Updated path handling to prevent duplicate 'private/' prefixes in Supabase URLs"
+</example>
+
+<example type="invalid">
+**Issue**: Audio playback failing with 404 errors
+
+**Approach**:
+1. Found a single location adding 'private/' prefix
+2. Fixed that one spot and assumed it would work
+3. Claimed "Fixed the audio path issue!"
+4. Didn't test with various path formats
+5. No logging, validation, or comprehensive analysis
+6. No commit suggestion or documentation updates
+</example> 

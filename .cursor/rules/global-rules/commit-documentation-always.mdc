@@ -1,0 +1,60 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Always Include Commit and Documentation Updates
+
+## Context
+
+- Ensures consistent follow-through after code changes
+- Prevents forgotten commits or undocumented changes
+- Requested explicitly after fixing audio playback path issues
+
+## Critical Rules
+
+- After implementing any code changes, ALWAYS suggest relevant git commands
+- Include a clear, descriptive commit message following conventional commits format:
+  - `fix:` for bug fixes
+  - `feat:` for new features
+  - `docs:` for documentation changes
+  - `refactor:` for code changes that neither fix bugs nor add features
+  - `test:` for adding or modifying tests
+  - `chore:` for maintenance tasks
+- For complex changes, suggest separate commits for logically distinct parts
+- Always suggest documentation updates when appropriate:
+  - README updates for new features or important fixes
+  - Comments for complex logic or non-obvious solutions
+  - Code examples for API or interface changes
+- End responses to code changes with a "Next Steps" section including:
+  - Git commands to commit changes
+  - Documentation suggestions
+  - Testing/verification suggestions
+
+## Examples
+
+<example>
+I've updated the audio playback handling to fix the path duplication issues. The changes ensure all paths are properly processed without adding multiple 'private/' prefixes.
+
+**Next Steps:**
+1. Commit the changes:
+   ```
+   git add src/app/api/media/[...path]/route.ts src/lib/utils/media.ts
+   git commit -m "fix: resolve audio playback path duplication issue"
+   ```
+
+2. Consider adding a comment in media.ts explaining the path handling logic:
+   ```typescript
+   // Extracts content after 'private/' to prevent path duplication
+   // when the API route automatically adds this prefix
+   ```
+
+3. Test with various path formats to verify the fix works in all scenarios
+</example>
+
+<example type="invalid">
+I've fixed the code by updating the path handling logic.
+
+Let me know if you have any questions!
+</example> 

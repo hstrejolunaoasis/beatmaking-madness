@@ -27,14 +27,17 @@ model Beat {
   bpm         Int
   key         String
   tags        String[]
-  genre       String
+  genreId     String
+  genre       Genre       @relation(fields: [genreId], references: [id])
   mood        String
+  description String      @default("")
   imageUrl    String
   audioUrl    String
   waveformUrl String
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   OrderItem   OrderItem[]
+  licenses    BeatLicense[]
 }
 
 model Order {
@@ -48,14 +51,66 @@ model Order {
   items     OrderItem[]
 }
 
+model LicenseType {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  licenses    License[]
+  orderItems  OrderItem[]
+}
+
+model License {
+  id           String       @id @default(cuid())
+  name         String
+  licenseTypeId String
+  licenseType  LicenseType  @relation(fields: [licenseTypeId], references: [id])
+  description  String
+  price        Float
+  features     String[]
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  orderItems   OrderItem[]
+  beats        BeatLicense[]
+}
+
 model OrderItem {
-  id          String      @id @default(cuid())
-  orderId     String
-  beatId      String
-  licenseType LicenseType
-  price       Float
-  beat        Beat        @relation(fields: [beatId], references: [id])
-  order       Order       @relation(fields: [orderId], references: [id])
+  id            String       @id @default(cuid())
+  orderId       String
+  beatId        String
+  licenseId     String
+  licenseTypeId String
+  price         Float
+  beat          Beat         @relation(fields: [beatId], references: [id])
+  order         Order        @relation(fields: [orderId], references: [id])
+  license       License      @relation(fields: [licenseId], references: [id])
+  licenseType   LicenseType  @relation(fields: [licenseTypeId], references: [id])
+}
+
+model BeatLicense {
+  id        String   @id @default(cuid())
+  beatId    String
+  licenseId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  beat      Beat     @relation(fields: [beatId], references: [id], onDelete: Cascade)
+  license   License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  @@unique([beatId, licenseId])
+}
+
+model Genre {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  active      Boolean  @default(true)
+  beats       Beat[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 enum Role {
@@ -67,10 +122,4 @@ enum OrderStatus {
   PENDING
   COMPLETED
   FAILED
-}
-
-enum LicenseType {
-  basic
-  premium
-  exclusive
 }

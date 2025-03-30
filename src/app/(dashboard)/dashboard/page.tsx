@@ -1,24 +1,86 @@
-"use client";
+import { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { BarChart, LineChart, Activity, Download, DollarSign, Music, Calendar, TrendingUp, Users, FileText, Shield, Award } from "lucide-react";
+import Link from "next/link";
 
-import { useState } from "react";
-import UploadBeatForm from "@/components/forms/UploadBeatForm";
+import { getCurrentUser } from "@/lib/supabase/server-actions";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useApi } from "@/lib/hooks/useApi";
-import { Beat } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BEAT_LICENSES } from "@/lib/config/constants";
 
-function BeatDashboardSkeleton() {
+// Create reusable component for stat cards
+function StatCard({ 
+  title, 
+  value, 
+  description, 
+  icon, 
+  trend = null, 
+  actionLabel = null, 
+  actionHref = null 
+}: { 
+  title: string; 
+  value: string | number; 
+  description: string; 
+  icon: React.ReactNode;
+  trend?: { value: string; isPositive: boolean } | null;
+  actionLabel?: string | null;
+  actionHref?: string | null;
+}) {
+  return (
+    <Card className="relative overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <div className="p-2 bg-primary/10 rounded-full">{icon}</div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        {trend && (
+          <div className={`inline-flex items-center text-xs mt-2 ${trend.isPositive ? 'text-green-500' : 'text-red-500'}`}>
+            <TrendingUp className={`h-3 w-3 mr-1 ${trend.isPositive ? '' : 'transform rotate-180'}`} />
+            <span>{trend.value} {trend.isPositive ? 'increase' : 'decrease'}</span>
+          </div>
+        )}
+      </CardContent>
+      {actionLabel && actionHref && (
+        <CardFooter className="p-2">
+          <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
+            <a href={actionHref}>{actionLabel}</a>
+          </Button>
+        </CardFooter>
+      )}
+    </Card>
+  );
+}
+
+// Create component for recent activity
+function RecentActivity() {
+  // In a real app, you would fetch this data
+  const activities = [
+    { date: "2023-07-15", event: "Beat uploaded", name: "Summer Vibes" },
+    { date: "2023-07-12", event: "Beat sold", name: "Midnight Flow" },
+    { date: "2023-07-10", event: "New follower", name: "Producer123" },
+  ];
+
+  if (activities.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-muted-foreground">No recent activity</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="p-4 border rounded-md">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <Skeleton className="w-40 h-6" />
-              <Skeleton className="w-24 h-4" />
-            </div>
-            <Skeleton className="w-20 h-8" />
+      {activities.map((activity, i) => (
+        <div key={i} className="flex items-start space-x-3">
+          <div className="p-2 bg-primary/10 rounded-full">
+            <Activity className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">{activity.event}: {activity.name}</p>
+            <p className="text-xs text-muted-foreground">{activity.date}</p>
           </div>
         </div>
       ))}
@@ -26,97 +88,232 @@ function BeatDashboardSkeleton() {
   );
 }
 
-export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<"upload" | "manage">("manage");
-  const { data: beats, loading, error, refetch } = useApi<Beat[]>({
-    url: "/api/beats",
-  });
+// Create component for license summary
+function LicenseSummary() {
+  // In a real app, you would fetch this data from the database
+  // For now, we'll use placeholder data
+  const licenses = [
+    { type: "basic", count: 2, lastPurchased: "2023-07-10" },
+    { type: "premium", count: 1, lastPurchased: "2023-07-15" },
+    { type: "exclusive", count: 0, lastPurchased: null },
+  ];
+
+  if (licenses.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-muted-foreground">No licenses purchased yet</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="container py-8">
-      <h1 className="mb-8 text-3xl font-bold">Producer Dashboard</h1>
+    <div className="space-y-4">
+      {licenses.map((license) => {
+        const licenseDetails = BEAT_LICENSES[license.type as keyof typeof BEAT_LICENSES];
+        return (
+          <div key={license.type} className="flex items-start space-x-3">
+            <div className="p-2 bg-primary/10 rounded-full">
+              {license.type === "basic" && <FileText className="h-4 w-4 text-primary" />}
+              {license.type === "premium" && <Award className="h-4 w-4 text-primary" />}
+              {license.type === "exclusive" && <Shield className="h-4 w-4 text-primary" />}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">{licenseDetails.name}</p>
+                <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded-full">
+                  {license.count} {license.count === 1 ? 'license' : 'licenses'}
+                </span>
+              </div>
+              {license.lastPurchased ? (
+                <p className="text-xs text-muted-foreground">Last purchased: {license.lastPurchased}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Not purchased yet</p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export const metadata: Metadata = {
+  title: "Dashboard | BeatMaking Madness",
+  description: "Manage your beats and account",
+};
+
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+
+  // This is a fallback - middleware should handle this but just in case
+  if (!user) {
+    redirect("/sign-in");
+  }
+
+  // In a real application, you would fetch these metrics from your database
+  const stats = {
+    beatsCount: 0,
+    downloads: 0,
+    sales: "$0",
+    followers: 0,
+    monthlyListens: 0,
+  };
+
+  return (
+    <div className="container py-8 space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <nav className="flex items-center gap-4 mt-4 sm:mt-0">
+          <Link href="/dashboard" className="text-sm font-medium hover:text-primary">Dashboard</Link>
+          <Link href="/dashboard/beats" className="text-sm font-medium hover:text-primary">My Beats</Link>
+          <Link href="/dashboard/licenses" className="text-sm font-medium hover:text-primary">Licenses</Link>
+          <Link href="/dashboard/license-types" className="text-sm font-medium hover:text-primary">License Types</Link>
+          <Link href="/dashboard/genres" className="text-sm font-medium hover:text-primary">Genres</Link>
+          <Link href="/dashboard/upload" className="text-sm font-medium hover:text-primary">Upload</Link>
+          <Link href="/dashboard/sales" className="text-sm font-medium hover:text-primary">Sales</Link>
+        </nav>
+      </div>
       
-      <div className="flex space-x-4 mb-6">
-        <Button
-          variant={activeTab === "manage" ? "default" : "outline"}
-          onClick={() => setActiveTab("manage")}
-        >
-          Manage Beats
-        </Button>
-        <Button
-          variant={activeTab === "upload" ? "default" : "outline"}
-          onClick={() => setActiveTab("upload")}
-        >
-          Upload New Beat
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="text-muted-foreground">
+            Welcome back{user?.user_metadata?.name ? `, ${user.user_metadata.name}` : ''}!
+          </p>
+        </div>
+        <Button asChild>
+          <a href="/dashboard/upload">Upload New Beat</a>
         </Button>
       </div>
       
-      {activeTab === "upload" ? (
-        <Card>
+      {/* Overview Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard 
+          title="Your Beats" 
+          value={stats.beatsCount} 
+          description="Total beats uploaded" 
+          icon={<Music className="h-4 w-4 text-primary" />}
+          actionLabel="Manage Beats"
+          actionHref="/dashboard/beats"
+        />
+        <StatCard 
+          title="Downloads" 
+          value={stats.downloads} 
+          description="Total beat downloads" 
+          icon={<Download className="h-4 w-4 text-primary" />}
+          trend={{ value: "0%", isPositive: true }}
+        />
+        <StatCard 
+          title="Sales" 
+          value={stats.sales} 
+          description="Total revenue earned" 
+          icon={<DollarSign className="h-4 w-4 text-primary" />}
+          trend={{ value: "0%", isPositive: true }}
+          actionLabel="View Sales"
+          actionHref="/dashboard/sales"
+        />
+        <StatCard 
+          title="Followers" 
+          value={stats.followers} 
+          description="People following your profile" 
+          icon={<Users className="h-4 w-4 text-primary" />}
+        />
+      </div>
+
+      {/* Activity and Analytics Section */}
+      <div className="grid gap-4 md:grid-cols-7">
+        {/* Activity Feed - 3 columns on larger screens */}
+        <Card className="md:col-span-3">
           <CardHeader>
-            <CardTitle>Upload a New Beat</CardTitle>
+            <CardTitle className="text-xl">Recent Activity</CardTitle>
+            <CardDescription>Your latest interactions and updates</CardDescription>
           </CardHeader>
           <CardContent>
-            <UploadBeatForm />
+            <RecentActivity />
+          </CardContent>
+          <CardFooter>
+            <Button variant="ghost" size="sm" className="w-full" asChild>
+              <a href="/dashboard/activity">View All Activity</a>
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Performance Overview - 4 columns on larger screens */}
+        <Card className="md:col-span-4">
+          <CardHeader>
+            <CardTitle className="text-xl">Performance Overview</CardTitle>
+            <CardDescription>Analytics for the past 30 days</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px] flex flex-col items-center justify-center">
+            {/* In a real application, you would render a chart here */}
+            <div className="text-center mb-4">
+              <BarChart className="h-16 w-16 text-primary/20 mx-auto mb-4" />
+              <p className="text-muted-foreground">No analytics data available yet</p>
+              <p className="text-xs text-muted-foreground">Upload and sell beats to see performance metrics</p>
+            </div>
           </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Your Beats</h2>
-            <Button variant="outline" onClick={() => refetch()}>
-              Refresh
+      </div>
+
+      {/* License Management and Upcoming Section */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* License Management Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl">License Management</CardTitle>
+              <Shield className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <CardDescription>Summary of your licensed beats</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LicenseSummary />
+          </CardContent>
+          <CardFooter className="flex flex-col gap-2">
+            <Button variant="ghost" size="sm" className="w-full" asChild>
+              <a href="/dashboard/licenses">Manage Licenses</a>
             </Button>
-          </div>
-          
-          {error && (
-            <div className="p-4 text-white bg-red-500 rounded-md">
-              Error loading beats: {error.message}
+            <Button variant="ghost" size="sm" className="w-full" asChild>
+              <a href="/dashboard/license-types">Manage License Types</a>
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Upcoming Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl">Upcoming Releases</CardTitle>
+              <Calendar className="h-5 w-5 text-muted-foreground" />
             </div>
-          )}
-          
-          {loading ? (
-            <BeatDashboardSkeleton />
-          ) : (
-            <div className="space-y-4">
-              {beats && beats.length > 0 ? (
-                beats.map((beat) => (
-                  <div key={beat.id} className="p-4 border rounded-md">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-medium">{beat.title}</h3>
-                        <p className="text-muted-foreground">
-                          ${beat.price.toFixed(2)} • {beat.bpm} BPM • {beat.key}
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(`/beats/${beat.id}`, "_blank")}
-                      >
-                        View
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-12 text-center">
-                  <h3 className="text-xl">You haven't uploaded any beats yet</h3>
-                  <p className="text-muted-foreground">
-                    Click "Upload New Beat" to get started
-                  </p>
-                  <Button 
-                    className="mt-4"
-                    onClick={() => setActiveTab("upload")}
-                  >
-                    Upload New Beat
-                  </Button>
-                </div>
-              )}
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-6">
+              <p className="text-muted-foreground">No upcoming releases scheduled</p>
+              <Button size="sm" variant="outline" className="mt-4">Schedule a Release</Button>
             </div>
-          )}
-        </div>
-      )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Trending Genres Section - moved to its own row */}
+      <div className="grid gap-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl">Trending Genres</CardTitle>
+              <LineChart className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-6">
+              <p className="text-muted-foreground">Upload beats to see trending genres</p>
+              <Button size="sm" variant="outline" className="mt-4" asChild>
+                <a href="/dashboard/upload">Upload Now</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 } 

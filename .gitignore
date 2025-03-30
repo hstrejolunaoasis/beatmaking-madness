@@ -9,6 +9,11 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+/.cursor/
+
+# database
+.cursor
+/.cursor
 
 # testing
 /coverage
@@ -39,3 +44,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Private individual user cursor rules
+.cursor/rules/_*.mdc
