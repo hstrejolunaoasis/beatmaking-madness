@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get('code');
+  const code = await requestUrl.searchParams.get('code');
 
   if (code) {
     // Create a Supabase client for the route handler context
@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
       {
         cookies: {
           async get(name: string) {
-            return cookieStore.get(name)?.value;
+            const cookie = await cookieStore.get(name);
+            return cookie?.value;
           },
           set(name: string, value: string, options: any) {
             cookieStore.set({ name, value, ...options });
