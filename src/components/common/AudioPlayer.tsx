@@ -53,14 +53,31 @@ export function AudioPlayer({
     if (!audioRef.current || !currentBeat) return;
     
     const audioEl = audioRef.current;
-    audioEl.src = getSecureMediaUrl(currentBeat.audioUrl);
+    
+    // Set loading state to prevent multiple play attempts
+    setIsPlaying(false);
+    
+    // Store the URL before setting it to prevent race conditions
+    const mediaUrl = getSecureMediaUrl(currentBeat.audioUrl);
+    audioEl.src = mediaUrl;
     audioEl.volume = isMuted ? 0 : volume;
     
-    audioEl.play().then(() => {
-      setIsPlaying(true);
-    }).catch(error => {
-      console.error("Error playing audio:", error);
-    });
+    // Use a small delay to let the browser process the new source
+    const playTimer = setTimeout(() => {
+      audioEl.play().then(() => {
+        setIsPlaying(true);
+      }).catch(error => {
+        console.error("Error playing audio:", error);
+        // If we get the interrupted error, try again once after a short delay
+        if (error.name === "AbortError" || String(error).includes("interrupted")) {
+          setTimeout(() => {
+            audioEl.play()
+              .then(() => setIsPlaying(true))
+              .catch(e => console.error("Retry failed:", e));
+          }, 500);
+        }
+      });
+    }, 100);
     
     // Event listeners
     const handleTimeUpdate = () => {
@@ -87,6 +104,7 @@ export function AudioPlayer({
     audioEl.addEventListener('ended', handleEnded);
     
     return () => {
+      clearTimeout(playTimer);
       audioEl.removeEventListener('timeupdate', handleTimeUpdate);
       audioEl.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audioEl.removeEventListener('ended', handleEnded);
@@ -105,11 +123,24 @@ export function AudioPlayer({
     
     if (isPlaying) {
       audioRef.current.pause();
+      setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(error => {
+        console.error("Play error:", error);
+        // If we get the interrupted error, try again once
+        if (error.name === "AbortError" || String(error).includes("interrupted")) {
+          setTimeout(() => {
+            if (audioRef.current) {
+              audioRef.current.play()
+                .then(() => setIsPlaying(true))
+                .catch(e => console.error("Retry failed:", e));
+            }
+          }, 500);
+        }
+      });
     }
-    
-    setIsPlaying(!isPlaying);
   };
 
   const handleStop = () => {

@@ -675,11 +675,26 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                                   if (audio.paused) {
                                     audio.play().catch(err => {
                                       console.error("Error playing audio:", err);
-                                      toast({
-                                        title: "Playback error",
-                                        description: "Could not play the audio file. Please try again.",
-                                        variant: "destructive",
-                                      });
+                                      
+                                      // If interrupted error, try again once
+                                      if (err.name === "AbortError" || String(err).includes("interrupted")) {
+                                        setTimeout(() => {
+                                          audio.play().catch(retryErr => {
+                                            console.error("Retry failed:", retryErr);
+                                            toast({
+                                              title: "Playback error",
+                                              description: "Could not play the audio file. Please try again.",
+                                              variant: "destructive",
+                                            });
+                                          });
+                                        }, 500);
+                                      } else {
+                                        toast({
+                                          title: "Playback error",
+                                          description: "Could not play the audio file. Please try again.",
+                                          variant: "destructive",
+                                        });
+                                      }
                                     });
                                   } else {
                                     audio.pause();
@@ -696,7 +711,7 @@ export const BeatForm: React.FC<BeatFormProps> = ({
                               className="max-w-full" 
                               src={getSecureMediaUrl(initialData.audioUrl)}
                               onError={handleAudioError}
-                              preload="none"
+                              preload="metadata"
                             >
                               Your browser does not support the audio element.
                             </audio>

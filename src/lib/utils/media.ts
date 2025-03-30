@@ -12,8 +12,10 @@ export function getSecureMediaUrl(path: string): string {
     if (path.includes('t=') || path.includes('retry=')) {
       return path;
     }
-    // Otherwise add a cache-busting timestamp
-    return `${path}${path.includes('?') ? '&' : '?'}t=${Date.now()}`;
+    // Use a stable timestamp based on the path itself to prevent frequent reloads
+    // This ensures the same audio file gets the same URL during a session
+    const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
+    return `${path}${path.includes('?') ? '&' : '?'}t=${stableTimestamp}`;
   }
   
   // Extract the path from a Supabase URL
@@ -27,11 +29,13 @@ export function getSecureMediaUrl(path: string): string {
       const privateParts = storagePath.split('private/');
       if (privateParts.length > 1) {
         // Our API will add 'private/' prefix, so just use what comes after it
-        return `/api/media/${privateParts[1]}?t=${Date.now()}`;
+        const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
+        return `/api/media/${privateParts[1]}?t=${stableTimestamp}`;
       }
     }
     
-    return `/api/media/${storagePath}?t=${Date.now()}`;
+    const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
+    return `/api/media/${storagePath}?t=${stableTimestamp}`;
   }
   
   // If it's a relative path without the Supabase URL structure, use it directly
@@ -42,14 +46,17 @@ export function getSecureMediaUrl(path: string): string {
       const privateParts = path.split('private/');
       if (privateParts.length > 1) {
         // Our API will add 'private/' prefix, so just use what comes after it
-        return `/api/media/${privateParts[1]}?t=${Date.now()}`;
+        const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
+        return `/api/media/${privateParts[1]}?t=${stableTimestamp}`;
       }
     }
     
     // For paths without 'private/', pass as is - the API will add the prefix
-    return `/api/media/${path}?t=${Date.now()}`;
+    const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
+    return `/api/media/${path}?t=${stableTimestamp}`;
   }
   
   // Otherwise, return the original URL with a timestamp
-  return `${path}${path.includes('?') ? '&' : '?'}t=${Date.now()}`;
+  const stableTimestamp = Math.floor(Date.now() / 300000); // Changes every 5 minutes
+  return `${path}${path.includes('?') ? '&' : '?'}t=${stableTimestamp}`;
 } 

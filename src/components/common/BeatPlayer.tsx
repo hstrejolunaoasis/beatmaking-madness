@@ -34,14 +34,21 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
       audio.currentTime = 0;
     };
 
+    const handleError = (e: ErrorEvent) => {
+      console.error("Audio playback error:", e);
+      setIsPlaying(false);
+    };
+
     audio.addEventListener("timeupdate", updateProgress);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError as EventListener);
 
     return () => {
       audio.removeEventListener("timeupdate", updateProgress);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError as EventListener);
     };
   }, [audioRef]);
 
@@ -51,10 +58,24 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
 
     if (isPlaying) {
       audio.pause();
+      setIsPlaying(false);
     } else {
-      audio.play();
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch(error => {
+        console.error("Error playing audio:", error);
+        
+        if (error.name === "AbortError" || String(error).includes("interrupted")) {
+          setTimeout(() => {
+            if (audioRef.current) {
+              audioRef.current.play()
+                .then(() => setIsPlaying(true))
+                .catch(e => console.error("Retry failed:", e));
+            }
+          }, 300);
+        }
+      });
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -77,7 +98,12 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
 
   return (
     <div className="flex flex-col w-full p-4 space-y-2 border rounded-md bg-card">
-      <audio ref={audioRef} src={audioUrl} preload="metadata" />
+      <audio 
+        ref={audioRef} 
+        src={audioUrl} 
+        preload="metadata" 
+        onError={(e) => console.error("Audio error event:", e)}
+      />
       
       <div className="flex items-center space-x-2">
         <Button
