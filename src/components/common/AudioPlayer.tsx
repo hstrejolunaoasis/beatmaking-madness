@@ -79,13 +79,6 @@ export function AudioPlayer({
     
     // Use a small delay to let the browser process the new source
     const playTimer = setTimeout(() => {
-      // Check if the duration is available before playing
-      if (audioEl.readyState >= 1) {
-        console.log("Metadata available before play, duration:", audioEl.duration);
-      } else {
-        console.log("Metadata not yet available before play, readyState:", audioEl.readyState);
-      }
-      
       // Store the play promise so we can check its state before interrupting
       playPromise = audioEl.play();
       
@@ -93,7 +86,6 @@ export function AudioPlayer({
         playPromise
           .then(() => {
             setIsPlaying(true);
-            console.log("Play successful, duration:", audioEl.duration, "readyState:", audioEl.readyState);
           })
           .catch(error => {
             console.error("Error playing audio:", error);
@@ -103,12 +95,8 @@ export function AudioPlayer({
             // If we get the interrupted error, try again once after a short delay
             if (error.name === "AbortError" || String(error).includes("interrupted")) {
               setTimeout(() => {
-                console.log("Retrying play after error");
                 audioEl.play()
-                  .then(() => {
-                    setIsPlaying(true);
-                    console.log("Retry successful, duration:", audioEl.duration);
-                  })
+                  .then(() => setIsPlaying(true))
                   .catch(e => console.error("Retry failed:", e));
               }, 500);
             }
@@ -123,7 +111,6 @@ export function AudioPlayer({
     
     const handleLoadedMetadata = () => {
       const audioDuration = audioEl.duration;
-      console.log("Audio metadata loaded - Duration:", audioDuration, "isFinite:", isFinite(audioDuration));
       
       // Only update if we have a valid duration
       if (isFinite(audioDuration) && audioDuration > 0) {
@@ -133,7 +120,6 @@ export function AudioPlayer({
     
     const handleDurationChange = () => {
       const audioDuration = audioEl.duration;
-      console.log("Duration changed - New duration:", audioDuration, "isFinite:", isFinite(audioDuration));
       
       // Only update if we have a valid duration
       if (isFinite(audioDuration) && audioDuration > 0) {
