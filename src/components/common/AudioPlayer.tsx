@@ -40,6 +40,7 @@ export function AudioPlayer({
   // Create audio element on first render
   useEffect(() => {
     const audio = new Audio();
+    audio.preload = "metadata"; // Set to preload metadata
     audioRef.current = audio;
     
     return () => {
@@ -72,8 +73,19 @@ export function AudioPlayer({
     audioEl.volume = isMuted ? 0 : volume;
     audioEl.load(); // Explicitly load the audio
     
+    // Reset duration and current time when changing tracks
+    setCurrentTime(0);
+    setDuration(0);
+    
     // Use a small delay to let the browser process the new source
     const playTimer = setTimeout(() => {
+      // Check if the duration is available before playing
+      if (audioEl.readyState >= 1) {
+        console.log("Metadata available before play, duration:", audioEl.duration);
+      } else {
+        console.log("Metadata not yet available before play, readyState:", audioEl.readyState);
+      }
+      
       // Store the play promise so we can check its state before interrupting
       playPromise = audioEl.play();
       
@@ -81,6 +93,7 @@ export function AudioPlayer({
         playPromise
           .then(() => {
             setIsPlaying(true);
+            console.log("Play successful, duration:", audioEl.duration, "readyState:", audioEl.readyState);
           })
           .catch(error => {
             console.error("Error playing audio:", error);
@@ -90,8 +103,12 @@ export function AudioPlayer({
             // If we get the interrupted error, try again once after a short delay
             if (error.name === "AbortError" || String(error).includes("interrupted")) {
               setTimeout(() => {
+                console.log("Retrying play after error");
                 audioEl.play()
-                  .then(() => setIsPlaying(true))
+                  .then(() => {
+                    setIsPlaying(true);
+                    console.log("Retry successful, duration:", audioEl.duration);
+                  })
                   .catch(e => console.error("Retry failed:", e));
               }, 500);
             }
@@ -106,8 +123,22 @@ export function AudioPlayer({
     
     const handleLoadedMetadata = () => {
       const audioDuration = audioEl.duration;
-      // Ensure duration is a valid, finite number
-      setDuration(isFinite(audioDuration) ? audioDuration : 0);
+      console.log("Audio metadata loaded - Duration:", audioDuration, "isFinite:", isFinite(audioDuration));
+      
+      // Only update if we have a valid duration
+      if (isFinite(audioDuration) && audioDuration > 0) {
+        setDuration(audioDuration);
+      }
+    };
+    
+    const handleDurationChange = () => {
+      const audioDuration = audioEl.duration;
+      console.log("Duration changed - New duration:", audioDuration, "isFinite:", isFinite(audioDuration));
+      
+      // Only update if we have a valid duration
+      if (isFinite(audioDuration) && audioDuration > 0) {
+        setDuration(audioDuration);
+      }
     };
     
     const handleEnded = () => {
@@ -123,6 +154,7 @@ export function AudioPlayer({
     
     audioEl.addEventListener('timeupdate', handleTimeUpdate);
     audioEl.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audioEl.addEventListener('durationchange', handleDurationChange);
     audioEl.addEventListener('ended', handleEnded);
     
     return () => {
@@ -145,6 +177,7 @@ export function AudioPlayer({
       
       audioEl.removeEventListener('timeupdate', handleTimeUpdate);
       audioEl.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audioEl.removeEventListener('durationchange', handleDurationChange);
       audioEl.removeEventListener('ended', handleEnded);
     };
   }, [currentBeat, beats, isMuted, volume, onPlayNext]);
@@ -330,8 +363,9 @@ export function AudioPlayer({
               value={[isFinite(currentTime) ? currentTime : 0]}
               onValueChange={handleSeek}
               className="flex-grow"
+              aria-label="Audio progress"
             />
-            <span className="text-xs tabular-nums">{formatTime(isFinite(duration) ? duration : 0)}</span>
+            <span className="text-xs tabular-nums">{formatTime(isFinite(duration) && duration > 0 ? duration : 0)}</span>
           </div>
         </div>
         
