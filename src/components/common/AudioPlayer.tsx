@@ -40,6 +40,7 @@ export function AudioPlayer({
   // Create audio element on first render
   useEffect(() => {
     const audio = new Audio();
+    audio.preload = "metadata"; // Set to preload metadata
     audioRef.current = audio;
     
     return () => {
@@ -71,6 +72,10 @@ export function AudioPlayer({
     audioEl.src = mediaUrl;
     audioEl.volume = isMuted ? 0 : volume;
     audioEl.load(); // Explicitly load the audio
+    
+    // Reset duration and current time when changing tracks
+    setCurrentTime(0);
+    setDuration(0);
     
     // Use a small delay to let the browser process the new source
     const playTimer = setTimeout(() => {
@@ -105,7 +110,21 @@ export function AudioPlayer({
     };
     
     const handleLoadedMetadata = () => {
-      setDuration(audioEl.duration);
+      const audioDuration = audioEl.duration;
+      
+      // Only update if we have a valid duration
+      if (isFinite(audioDuration) && audioDuration > 0) {
+        setDuration(audioDuration);
+      }
+    };
+    
+    const handleDurationChange = () => {
+      const audioDuration = audioEl.duration;
+      
+      // Only update if we have a valid duration
+      if (isFinite(audioDuration) && audioDuration > 0) {
+        setDuration(audioDuration);
+      }
     };
     
     const handleEnded = () => {
@@ -121,6 +140,7 @@ export function AudioPlayer({
     
     audioEl.addEventListener('timeupdate', handleTimeUpdate);
     audioEl.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audioEl.addEventListener('durationchange', handleDurationChange);
     audioEl.addEventListener('ended', handleEnded);
     
     return () => {
@@ -143,12 +163,16 @@ export function AudioPlayer({
       
       audioEl.removeEventListener('timeupdate', handleTimeUpdate);
       audioEl.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audioEl.removeEventListener('durationchange', handleDurationChange);
       audioEl.removeEventListener('ended', handleEnded);
     };
   }, [currentBeat, beats, isMuted, volume, onPlayNext]);
 
   // Format time in MM:SS
   const formatTime = (time: number) => {
+    if (!isFinite(time) || time < 0) {
+      return '0:00';
+    }
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -224,6 +248,12 @@ export function AudioPlayer({
     if (!audioRef.current) return;
     
     const newTime = value[0];
+    // Ensure the value is finite before setting it
+    if (!isFinite(newTime)) {
+      console.warn("Attempted to seek with non-finite value:", newTime);
+      return;
+    }
+    
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
   };
@@ -232,6 +262,12 @@ export function AudioPlayer({
     if (!audioRef.current) return;
     
     const newVolume = value[0];
+    // Ensure volume is a valid value
+    if (!isFinite(newVolume) || newVolume < 0 || newVolume > 1) {
+      console.warn("Invalid volume value:", newVolume);
+      return;
+    }
+    
     setVolume(newVolume);
     prevVolumeRef.current = newVolume;
     
@@ -305,16 +341,17 @@ export function AudioPlayer({
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-xs tabular-nums">{formatTime(currentTime)}</span>
+            <span className="text-xs tabular-nums">{formatTime(isFinite(currentTime) ? currentTime : 0)}</span>
             <Slider
               min={0}
-              max={duration || 100}
+              max={isFinite(duration) && duration > 0 ? duration : 100}
               step={0.1}
-              value={[currentTime]}
+              value={[isFinite(currentTime) ? currentTime : 0]}
               onValueChange={handleSeek}
               className="flex-grow"
+              aria-label="Audio progress"
             />
-            <span className="text-xs tabular-nums">{formatTime(duration)}</span>
+            <span className="text-xs tabular-nums">{formatTime(isFinite(duration) && duration > 0 ? duration : 0)}</span>
           </div>
         </div>
         
@@ -326,7 +363,7 @@ export function AudioPlayer({
             min={0}
             max={1}
             step={0.01}
-            value={[isMuted ? 0 : volume]}
+            value={[isMuted ? 0 : (isFinite(volume) && volume >= 0 && volume <= 1 ? volume : 0.8)]}
             onValueChange={handleVolumeChange}
             className="w-24"
           />
