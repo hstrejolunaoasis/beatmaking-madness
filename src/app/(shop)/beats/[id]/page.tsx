@@ -38,7 +38,7 @@ function BeatDetailSkeleton() {
 
 export default function BeatDetailPage() {
   const params = useParams();
-  const { id } = React.use(params);
+  const id = params.id as string;
   const [beat, setBeat] = useState<Beat | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
