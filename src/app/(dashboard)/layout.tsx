@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col items-center justify-center">
       {children}
     </div>
   );

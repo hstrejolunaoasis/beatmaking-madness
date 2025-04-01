@@ -13,12 +13,16 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const playPromiseRef = useRef<Promise<void> | undefined>(undefined);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    setIsLoading(true);
+    setError(null);
     audio.load();
 
     const updateProgress = () => {
@@ -29,6 +33,7 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
 
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
+      setIsLoading(false);
     };
 
     const handleEnded = () => {
@@ -37,15 +42,49 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
       audio.currentTime = 0;
     };
 
-    const handleError = (e: ErrorEvent) => {
-      console.error("Audio playback error:", e);
+    const handleError = (e: Event) => {
+      const target = e.target as HTMLAudioElement;
+      console.error("Audio error details:", {
+        error: target.error,
+        src: target.src,
+        readyState: target.readyState,
+        networkState: target.networkState
+      });
+      
+      setError("Failed to load audio. Please try again.");
       setIsPlaying(false);
+      setIsLoading(false);
+      
+      // If the error is due to no source or network issues, try reloading
+      if (target.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED ||
+          target.error?.code === MediaError.MEDIA_ERR_NETWORK) {
+        // Add a retry parameter to bust cache
+        const currentSrc = new URL(target.src);
+        if (!currentSrc.searchParams.has('retry')) {
+          currentSrc.searchParams.set('retry', 'true');
+          currentSrc.searchParams.set('t', Date.now().toString());
+          target.src = currentSrc.toString();
+          target.load();
+        }
+      }
+    };
+
+    const handleLoadStart = () => {
+      setIsLoading(true);
+      setError(null);
+    };
+
+    const handleCanPlay = () => {
+      setIsLoading(false);
+      setError(null);
     };
 
     audio.addEventListener("timeupdate", updateProgress);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("error", handleError as EventListener);
+    audio.addEventListener("error", handleError);
+    audio.addEventListener("loadstart", handleLoadStart);
+    audio.addEventListener("canplay", handleCanPlay);
 
     return () => {
       if (playPromiseRef.current !== undefined) {
@@ -63,7 +102,9 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
       audio.removeEventListener("timeupdate", updateProgress);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError as EventListener);
+      audio.removeEventListener("error", handleError);
+      audio.removeEventListener("loadstart", handleLoadStart);
+      audio.removeEventListener("canplay", handleCanPlay);
     };
   }, [audioRef, audioUrl]);
 
@@ -131,8 +172,7 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
       <audio 
         ref={audioRef} 
         src={audioUrl} 
-        preload="metadata" 
-        onError={(e) => console.error("Audio error event:", e)}
+        preload="metadata"
       />
       
       <div className="flex items-center space-x-2">
@@ -141,6 +181,7 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
           size="icon"
           onClick={togglePlayPause}
           className="h-8 w-8 rounded-full"
+          disabled={isLoading || !!error}
         >
           {isPlaying ? (
             <svg
@@ -191,6 +232,18 @@ export function BeatPlayer({ audioUrl, waveformUrl }: BeatPlayerProps) {
           {formatTime(duration)}
         </div>
       </div>
+      
+      {error && (
+        <div className="text-sm text-destructive mt-2">
+          {error}
+        </div>
+      )}
+      
+      {isLoading && (
+        <div className="text-sm text-muted-foreground mt-2">
+          Loading audio...
+        </div>
+      )}
       
       {waveformUrl && (
         <div className="h-16 mt-2 overflow-hidden rounded-md bg-muted">

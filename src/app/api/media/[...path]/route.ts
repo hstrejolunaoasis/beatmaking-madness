@@ -9,23 +9,27 @@ export async function GET(
   { params }: { params: { path: string[] } }
 ) {
   try {
+    // Log request details
+    const requestUrl = new URL(request.url);
+    console.log("Media API request details:", {
+      url: requestUrl.toString(),
+      path: params.path,
+      searchParams: Object.fromEntries(requestUrl.searchParams),
+    });
+
     // Fix: Await params before accessing path property
     const pathParams = await params.path;
     const filePath = pathParams.join("/");
-    console.log("Media API request for:", filePath);
     
     // Handle special case for waveform placeholder
     if (filePath === "waveform-placeholder.svg") {
       const publicFilePath = path.join(process.cwd(), "public", "waveform-placeholder.svg");
       
-      // Check if the file exists
       try {
         await fs.promises.access(publicFilePath);
-        // Read the file
         const fileBuffer = await fs.promises.readFile(publicFilePath);
         console.log("Serving waveform placeholder SVG from file");
         
-        // Return the file with appropriate headers
         return new NextResponse(fileBuffer, {
           headers: {
             "Content-Type": "image/svg+xml",
@@ -33,7 +37,7 @@ export async function GET(
           },
         });
       } catch (error) {
-        console.error("Waveform placeholder not found at:", publicFilePath);
+        console.error("Waveform placeholder not found:", error);
         // Generate a simple fallback SVG inline
         const fallbackSvg = `<svg width="800" height="100" viewBox="0 0 800 100" xmlns="http://www.w3.org/2000/svg">
           <path d="M0,50 Q20,30 40,50 T80,50 T120,50 T160,50 T200,50 T240,50 T280,50 T320,50 T360,50 T400,50 T440,50 T480,50 T520,50 T560,50 T600,50 T640,50 T680,50 T720,50 T760,50 T800,50" 
@@ -44,7 +48,6 @@ export async function GET(
                 stroke="currentColor" stroke-width="1" fill="none" stroke-opacity="0.5" />
         </svg>`;
         
-        console.log("Serving inline fallback waveform SVG");
         return new NextResponse(fallbackSvg, {
           headers: {
             "Content-Type": "image/svg+xml",
@@ -54,9 +57,7 @@ export async function GET(
       }
     }
     
-    // For regular Supabase files, continue with original implementation
-    
-    // Require authentication - this is essential for the bucket policy
+    // Require authentication for private files
     const user = await getCurrentUser();
     if (!user) {
       console.error("Unauthorized access attempt for file:", filePath);
@@ -66,124 +67,96 @@ export async function GET(
     // Improved path handling to prevent 'private/' duplication
     let supabasePath = filePath;
     
-    // Check if the path already contains 'private/' anywhere (not just at the start)
-    const containsPrivatePrefix = supabasePath.includes('private/');
-    
+    // Log original path for debugging
     console.log("Path analysis:", {
       originalPath: filePath,
-      containsPrivatePrefix
+      containsPrivatePrefix: supabasePath.includes('private/')
     });
     
-    // Only add 'private/' if it's not already in the path
-    if (!containsPrivatePrefix) {
-      supabasePath = `private/${supabasePath}`;
-    } else if (!supabasePath.startsWith('private/')) {
-      // If 'private/' is in the middle of the path (e.g., 'beats/private/something'),
-      // we need to extract the correct part
+    // Handle paths with 'private/' prefix
+    if (supabasePath.includes('private/')) {
+      // Extract everything after the first occurrence of 'private/'
       const privateParts = supabasePath.split('private/');
       if (privateParts.length > 1) {
-        // Take everything after the first occurrence of 'private/'
         supabasePath = `private/${privateParts[1]}`;
       }
+    } else {
+      // Add 'private/' prefix if not present
+      supabasePath = `private/${supabasePath}`;
     }
     
     console.log("Accessing Supabase file:", supabasePath);
     
-    // Create a Supabase client with admin privileges
+    // Create Supabase client
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || "",
       process.env.SUPABASE_SERVICE_ROLE_KEY || ""
     );
 
-    // Check if the file exists first
+    // Try direct download first
     try {
-      // Try to extract the folder path and filename
-      const lastSlashIndex = supabasePath.lastIndexOf('/');
-      const folderPath = lastSlashIndex > 0 ? supabasePath.substring(0, lastSlashIndex) : '';
-      const fileName = lastSlashIndex > 0 ? supabasePath.substring(lastSlashIndex + 1) : supabasePath;
-      
-      console.log(`Checking if file exists: folder=${folderPath}, file=${fileName}`);
-      
-      // List the files in the folder to see if our file exists
-      const { data: fileList, error: listError } = await supabaseAdmin.storage
-        .from("beats")
-        .list(folderPath, {
-          search: fileName,
-          limit: 1
-        });
-      
-      if (listError || !fileList || fileList.length === 0) {
-        console.error("File not found in Supabase:", supabasePath, listError);
-        
-        // Try a different approach if not found and not in a retry loop
-        if (!request.url.includes('retry=true')) {
-          // Try without any 'private/' prefix as a fallback
-          let altPath = supabasePath;
-          if (supabasePath.startsWith('private/')) {
-            altPath = supabasePath.substring(8);
-          }
-          
-          console.log("Trying alternate path:", altPath);
-          const redirectUrl = new URL(`/api/media/${altPath}`, request.url);
-          redirectUrl.searchParams.set('retry', 'true');
-          return NextResponse.redirect(redirectUrl);
-        }
-        
-        return new NextResponse("File not found in storage", { status: 404 });
-      }
-      
-      console.log("File found in storage:", fileList[0].name);
-      
-      // Try to get the file directly first for better performance
       const { data: fileData, error: downloadError } = await supabaseAdmin.storage
         .from("beats")
         .download(supabasePath);
         
       if (!downloadError && fileData) {
-        console.log("Successfully downloaded file, serving directly");
+        console.log("Successfully downloaded file");
         
-        // Determine content type based on file extension
-        const fileExt = fileName.split('.').pop()?.toLowerCase();
+        // Determine content type
+        const fileExt = path.extname(filePath).toLowerCase();
         let contentType = 'application/octet-stream';
         
-        if (fileExt === 'mp3') contentType = 'audio/mpeg';
-        else if (fileExt === 'wav') contentType = 'audio/wav';
-        else if (fileExt === 'jpg' || fileExt === 'jpeg') contentType = 'image/jpeg';
-        else if (fileExt === 'png') contentType = 'image/png';
-        else if (fileExt === 'svg') contentType = 'image/svg+xml';
+        if (fileExt === '.mp3') contentType = 'audio/mpeg';
+        else if (fileExt === '.wav') contentType = 'audio/wav';
+        else if (fileExt === '.jpg' || fileExt === '.jpeg') contentType = 'image/jpeg';
+        else if (fileExt === '.png') contentType = 'image/png';
+        else if (fileExt === '.svg') contentType = 'image/svg+xml';
         
-        // Serve the file directly
+        // Set appropriate cache control based on content type
+        const cacheControl = contentType.startsWith('audio/') 
+          ? 'public, max-age=3600' // 1 hour for audio files
+          : 'public, max-age=86400'; // 1 day for other files
+        
         return new NextResponse(fileData, {
           headers: {
             'Content-Type': contentType,
-            'Cache-Control': 'public, max-age=86400', // 1 day cache
+            'Cache-Control': cacheControl,
+            'Accept-Ranges': 'bytes'
           }
         });
       }
-      
-      // Fallback to signed URL if direct download fails
-      console.log("Direct download failed, falling back to signed URL");
-      
-    } catch (checkError) {
-      console.error("Error checking file existence:", checkError);
-      // Continue with signed URL as fallback
+    } catch (downloadError) {
+      console.error("Direct download failed:", downloadError);
     }
 
-    // Get a signed URL with a short expiry
+    // Fallback to signed URL if direct download fails
+    console.log("Falling back to signed URL");
     const { data, error } = await supabaseAdmin.storage
       .from("beats")
       .createSignedUrl(supabasePath, 300); // 5 minutes expiry
 
     if (error || !data?.signedUrl) {
       console.error("Error getting signed URL:", error);
-      return new NextResponse("File not found or inaccessible", { status: 404 });
+      return new NextResponse("File not found or inaccessible", { 
+        status: 404,
+        headers: {
+          'Content-Type': 'text/plain'
+        }
+      });
     }
 
-    console.log("Redirecting to signed URL with expiry");
-    // Redirect to the signed URL
+    console.log("Redirecting to signed URL");
     return NextResponse.redirect(data.signedUrl);
   } catch (error) {
     console.error("Error serving file:", error);
-    return new NextResponse(`Internal Server Error: ${error instanceof Error ? error.message : "Unknown error"}`, { status: 500 });
+    return new NextResponse(
+      `Internal Server Error: ${error instanceof Error ? error.message : "Unknown error"}`, 
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'text/plain'
+        }
+      }
+    );
   }
 } 
